@@ -1,0 +1,96 @@
+-- Shadi Prabandhak schema
+-- Run in Supabase SQL Editor
+
+create extension if not exists "pgcrypto";
+
+-- Wedding config
+create table if not exists weddings (
+  id uuid primary key default gen_random_uuid(),
+  bride_name text not null,
+  groom_name text not null,
+  wedding_date date not null,
+  created_at timestamptz not null default now()
+);
+
+-- Events
+create table if not exists events (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  name text not null,
+  event_date date not null,
+  time_label text,
+  venue text,
+  tag text,
+  sort_order int not null default 0
+);
+
+-- Guests
+create table if not exists guests (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  name text not null,
+  side text not null check (side in ('bride', 'groom')),
+  rsvp_status text not null check (rsvp_status in ('confirmed', 'pending', 'declined')),
+  events_attending text,
+  dietary text,
+  notes text
+);
+
+-- Budget
+create table if not exists budget_categories (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  name text not null,
+  allocated numeric not null default 0 check (allocated >= 0),
+  spent numeric not null default 0 check (spent >= 0),
+  sort_order int not null default 0
+);
+
+-- Vendors
+create table if not exists vendors (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  type text not null,
+  name text not null,
+  phone text,
+  email text,
+  notes text,
+  status text not null check (status in ('booked', 'shortlisted'))
+);
+
+-- Checklist
+create table if not exists checklist_items (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  group_label text not null,
+  title text not null,
+  due_label text,
+  status text not null check (status in ('done', 'next', 'later')),
+  sort_order int not null default 0
+);
+
+-- Decisions
+create table if not exists decisions (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  decision_date date not null,
+  text text not null,
+  created_at timestamptz not null default now()
+);
+
+-- RLS
+alter table weddings enable row level security;
+alter table events enable row level security;
+alter table guests enable row level security;
+alter table budget_categories enable row level security;
+alter table vendors enable row level security;
+alter table checklist_items enable row level security;
+alter table decisions enable row level security;
+
+create policy "Authenticated full access weddings" on weddings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access events" on events for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access guests" on guests for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access budget" on budget_categories for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access vendors" on vendors for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access checklist" on checklist_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access decisions" on decisions for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
