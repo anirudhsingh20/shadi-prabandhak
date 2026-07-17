@@ -20,10 +20,10 @@ export const eventSchema = z.object({
 
 export const guestSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  side: z.enum(['bride', 'groom']),
+  side: z.enum(['bride', 'groom', 'common']),
   rsvp_status: z.enum(['confirmed', 'pending', 'declined']),
+  headcount: z.coerce.number().int().min(1, 'At least 1').max(99),
   events_attending: z.string().optional(),
-  dietary: z.string().optional(),
   notes: z.string().optional(),
 })
 

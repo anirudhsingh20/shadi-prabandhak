@@ -12,15 +12,17 @@ insert into events (wedding_id, name, event_date, time_label, venue, tag, sort_o
 ('00000000-0000-0000-0000-000000000001', 'Wedding (Vivah)', '2026-11-20', '11:00 AM', 'Mandap · Pheras, baraat, lunch', 'Main', 4),
 ('00000000-0000-0000-0000-000000000001', 'Reception', '2026-11-20', '7:00 PM', 'Same venue · Grand dinner, stage, photo ops', 'Evening', 5);
 
-insert into guests (wedding_id, name, side, rsvp_status, events_attending, dietary, notes) values
-('00000000-0000-0000-0000-000000000001', 'Rajesh & Sunita Sharma', 'bride', 'confirmed', 'All', 'Vegetarian', 'Uncle & aunt — front row'),
-('00000000-0000-0000-0000-000000000001', 'Vikram Mehta', 'groom', 'confirmed', 'Wedding, Reception', null, 'College friend'),
-('00000000-0000-0000-0000-000000000001', 'Priya & Arjun Kapoor', 'bride', 'pending', 'All', 'Jain', 'Cousins from Delhi'),
-('00000000-0000-0000-0000-000000000001', 'Dr. Anil Verma', 'groom', 'confirmed', 'Wedding', 'Vegetarian', 'Family pandit referral'),
-('00000000-0000-0000-0000-000000000001', 'Neha & Rohit Agarwal', 'bride', 'declined', null, null, 'Traveling abroad'),
-('00000000-0000-0000-0000-000000000001', 'Sanjay Iyer', 'groom', 'pending', 'Sangeet, Reception', 'Vegan', 'Office colleague'),
-('00000000-0000-0000-0000-000000000001', 'Meera & Kartik Joshi', 'bride', 'confirmed', 'Mehendi, Sangeet, Wedding', 'Vegetarian', 'Close friends'),
-('00000000-0000-0000-0000-000000000001', 'Ramesh & Lakshmi Nair', 'groom', 'pending', 'All', 'Vegetarian', 'Parents'' neighbours');
+insert into guests (wedding_id, name, side, rsvp_status, headcount, events_attending, notes) values
+('00000000-0000-0000-0000-000000000001', 'Rajesh & Sunita Sharma', 'bride', 'confirmed', 2, 'All', 'Uncle & aunt — front row'),
+('00000000-0000-0000-0000-000000000001', 'Vikram Mehta', 'groom', 'confirmed', 1, 'Wedding (Vivah), Reception', 'College friend'),
+('00000000-0000-0000-0000-000000000001', 'Priya & Arjun Kapoor', 'bride', 'pending', 2, 'All', 'Cousins from Delhi'),
+('00000000-0000-0000-0000-000000000001', 'Dr. Anil Verma', 'groom', 'confirmed', 1, 'Wedding (Vivah)', 'Family pandit referral'),
+('00000000-0000-0000-0000-000000000001', 'Neha & Rohit Agarwal', 'bride', 'declined', 2, null, 'Traveling abroad'),
+('00000000-0000-0000-0000-000000000001', 'Sanjay Iyer', 'groom', 'pending', 1, 'Sangeet, Reception', 'Office colleague'),
+('00000000-0000-0000-0000-000000000001', 'Meera & Kartik Joshi', 'bride', 'confirmed', 2, 'Mehendi, Sangeet, Wedding (Vivah)', 'Close friends'),
+('00000000-0000-0000-0000-000000000001', 'Ramesh & Lakshmi Nair', 'groom', 'pending', 2, 'All', 'Parents'' neighbours'),
+('00000000-0000-0000-0000-000000000001', 'College batch 2018', 'common', 'confirmed', 6, 'Sangeet, Reception', 'Mutual friends'),
+('00000000-0000-0000-0000-000000000001', 'Office team leads', 'common', 'pending', 4, 'Reception', 'Shared workplace');
 
 insert into budget_categories (wedding_id, name, allocated, spent, sort_order) values
 ('00000000-0000-0000-0000-000000000001', 'Venue & Decor', 800000, 420000, 1),

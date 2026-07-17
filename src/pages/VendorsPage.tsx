@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
+import { PageHeader } from '@/components/PageHeader'
 import { VendorBadge } from '@/components/StatusBadges'
 import { Button } from '@/components/ui/button'
 import {
@@ -135,28 +136,28 @@ export function VendorsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Vendors</h1>
-          <p className="text-sm text-muted-foreground">Contacts and booking status</p>
-        </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add</Button></DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Add vendor</DialogTitle></DialogHeader>
-            <VendorForm submitLabel="Add vendor" onSubmit={(v) => save(v)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Vendors"
+        description="Contacts and booking status"
+        action={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add</Button></DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Add vendor</DialogTitle></DialogHeader>
+              <VendorForm submitLabel="Add vendor" onSubmit={(v) => save(v)} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3">
         {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
         {vendors.map((v) => (
           <div key={v.id} className="rounded-md border p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{v.type}</p>
-            <p className="mt-1 font-semibold">{v.name}</p>
-            {v.phone && <p className="mt-2 text-sm text-muted-foreground">{v.phone}</p>}
-            {v.email && <p className="text-sm text-muted-foreground">{v.email}</p>}
-            {v.notes && <p className="mt-1 text-xs text-muted-foreground">{v.notes}</p>}
+            <p className="text-sm uppercase tracking-wide text-muted-foreground">{v.type}</p>
+            <p className="mt-1 text-base font-semibold">{v.name}</p>
+            {v.phone && <p className="mt-2 text-base text-muted-foreground">{v.phone}</p>}
+            {v.email && <p className="text-base text-muted-foreground">{v.email}</p>}
+            {v.notes && <p className="mt-1 text-sm text-muted-foreground">{v.notes}</p>}
             <div className="mt-3 flex items-center justify-between">
               <VendorBadge status={v.status} />
               <div className="flex gap-1">

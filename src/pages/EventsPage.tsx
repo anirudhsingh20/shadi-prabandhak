@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
+import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -113,32 +114,34 @@ export function EventsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Ceremony roadmap</h1>
-          <p className="text-sm text-muted-foreground">Mehendi through Reception</p>
-        </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add</Button></DialogTrigger>
-          <DialogContent><DialogHeader><DialogTitle>Add event</DialogTitle></DialogHeader>
-            <EventForm submitLabel="Add event" onSubmit={(v) => save(v)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Ceremony roadmap"
+        description="Mehendi through Reception"
+        action={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add</Button></DialogTrigger>
+            <DialogContent><DialogHeader><DialogTitle>Add event</DialogTitle></DialogHeader>
+              <EventForm submitLabel="Add event" onSubmit={(v) => save(v)} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <div className="space-y-2">
         {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
         {events.map((e) => (
-          <div key={e.id} className="flex flex-col gap-2 rounded-md border p-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground">{e.event_date}</p>
-              <h2 className="font-semibold">{e.name}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{[e.time_label, e.venue].filter(Boolean).join(' · ')}</p>
+          <div key={e.id} className="flex flex-col gap-3 rounded-md border p-4">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">{e.event_date}</p>
+              <h2 className="font-display text-xl font-semibold text-gold">{e.name}</h2>
+              <p className="mt-1 text-base text-muted-foreground">{[e.time_label, e.venue].filter(Boolean).join(' · ')}</p>
             </div>
-            <div className="flex items-center gap-2">
-              {e.tag && <Badge variant="secondary">{e.tag}</Badge>}
-              <Button variant="ghost" size="icon" onClick={() => setEditEvent(e)}><Pencil className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+            <div className="flex items-center justify-between gap-2">
+              {e.tag ? <Badge variant="secondary">{e.tag}</Badge> : <span />}
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={() => setEditEvent(e)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
             </div>
           </div>
         ))}

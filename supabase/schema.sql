@@ -29,12 +29,27 @@ create table if not exists guests (
   id uuid primary key default gen_random_uuid(),
   wedding_id uuid not null references weddings(id) on delete cascade,
   name text not null,
-  side text not null check (side in ('bride', 'groom')),
+  side text not null check (side in ('bride', 'groom', 'common')),
   rsvp_status text not null check (rsvp_status in ('confirmed', 'pending', 'declined')),
+  headcount int not null default 1 check (headcount >= 1),
   events_attending text,
-  dietary text,
-  notes text
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+
+create or replace function set_guests_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists guests_set_updated_at on guests;
+create trigger guests_set_updated_at
+  before update on guests
+  for each row execute function set_guests_updated_at();
 
 -- Budget
 create table if not exists budget_categories (

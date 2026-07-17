@@ -4,6 +4,20 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+        sans: ['"Nunito Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        xs: ['0.8125rem', { lineHeight: '1.35' }],
+        sm: ['0.9375rem', { lineHeight: '1.45' }],
+        base: ['1.0625rem', { lineHeight: '1.55' }],
+        lg: ['1.1875rem', { lineHeight: '1.5' }],
+        xl: ['1.375rem', { lineHeight: '1.4' }],
+        '2xl': ['1.625rem', { lineHeight: '1.3' }],
+        '3xl': ['1.875rem', { lineHeight: '1.25' }],
+        '4xl': ['2.25rem', { lineHeight: '1.2' }],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
@@ -43,6 +57,10 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        gold: {
+          DEFAULT: 'hsl(var(--gold))',
+          foreground: 'hsl(var(--gold-foreground))',
+        },
       },
     },
   },

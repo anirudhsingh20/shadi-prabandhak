@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
+import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -105,23 +106,23 @@ export function BudgetPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Budget</h1>
-          <p className="text-sm text-muted-foreground">Track spend by category</p>
-        </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add</Button></DialogTrigger>
-          <DialogContent><DialogHeader><DialogTitle>Add category</DialogTitle></DialogHeader>
-            <BudgetForm submitLabel="Add category" onSubmit={(v) => save(v)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Budget"
+        description="Track spend by category"
+        action={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add</Button></DialogTrigger>
+            <DialogContent><DialogHeader><DialogTitle>Add category</DialogTitle></DialogHeader>
+              <BudgetForm submitLabel="Add category" onSubmit={(v) => save(v)} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total budget</p><p className="text-xl font-semibold">{formatCurrency(totals.allocated)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Spent</p><p className="text-xl font-semibold">{formatCurrency(totals.spent)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Remaining</p><p className="text-xl font-semibold">{formatCurrency(totals.remaining)}</p></CardContent></Card>
+      <div className="grid gap-3">
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total budget</p><p className="font-display text-2xl font-semibold text-gold">{formatCurrency(totals.allocated)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Spent</p><p className="font-display text-2xl font-semibold text-white">{formatCurrency(totals.spent)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Remaining</p><p className="font-display text-2xl font-semibold text-white">{formatCurrency(totals.remaining)}</p></CardContent></Card>
       </div>
 
       <div className="space-y-3">
@@ -132,8 +133,8 @@ export function BudgetPage() {
             <div key={c.id} className="rounded-md border p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-medium">{c.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatCurrency(Number(c.spent))} / {formatCurrency(Number(c.allocated))}</p>
+                  <p className="text-base font-semibold">{c.name}</p>
+                  <p className="text-sm text-muted-foreground">{formatCurrency(Number(c.spent))} / {formatCurrency(Number(c.allocated))}</p>
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" onClick={() => setEditItem(c)}><Pencil className="h-4 w-4" /></Button>

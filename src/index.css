@@ -4,25 +4,38 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    /* Near-black purple — high contrast for white/gold */
+    --background: 270 40% 8%;
+    --foreground: 0 0% 100%;
+
+    --card: 270 35% 12%;
+    --card-foreground: 0 0% 100%;
+    --popover: 270 40% 7%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Gold #D4A853 */
+    --primary: 40 62% 62%;
+    --primary-foreground: 270 40% 8%;
+
+    --secondary: 270 30% 16%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 270 25% 14%;
+    --muted-foreground: 40 28% 78%;
+
+    --accent: 40 35% 18%;
+    --accent-foreground: 40 70% 85%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 40 35% 42%;
+    --input: 40 25% 38%;
+    --ring: 40 62% 62%;
+
+    --gold: 40 62% 62%;
+    --gold-foreground: 270 40% 8%;
+
     --radius: 0.5rem;
   }
 }
@@ -31,7 +44,58 @@
   * {
     @apply border-border;
   }
+  html {
+    font-size: 17px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply text-base text-foreground antialiased;
+    font-family: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
+    font-optical-sizing: auto;
+    background-color: #0c0618;
+    line-height: 1.55;
+  }
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: Fraunces, ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
+    letter-spacing: 0.01em;
+  }
+}
+
+@layer utilities {
+  /* Dark plum field — subtle depth, no bright purple wash */
+  .wedding-bg {
+    background-color: #0c0618;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(109, 40, 217, 0.22), transparent 55%),
+      radial-gradient(ellipse 55% 40% at 100% 100%, rgba(76, 29, 149, 0.18), transparent 50%),
+      linear-gradient(180deg, #12081f 0%, #0c0618 55%, #080412 100%);
+  }
+
+  .wedding-shell {
+    background-color: #10081c;
+    background-image:
+      linear-gradient(
+        180deg,
+        rgba(109, 40, 217, 0.16) 0%,
+        rgba(12, 6, 24, 0.96) 42%,
+        #0a0514 100%
+      );
+  }
+
+  .wedding-surface {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .wedding-chrome {
+    background: rgba(8, 4, 18, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 }

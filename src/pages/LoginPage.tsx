@@ -55,11 +55,11 @@ export function LoginPage() {
   })
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+    <div className="wedding-bg flex min-h-dvh items-center justify-center px-4">
+      <Card className="wedding-surface w-full max-w-[430px] border-gold/45 shadow-[0_0_48px_rgba(212,168,83,0.16)]">
         <CardHeader>
-          <CardTitle>Shadi Prabandhak</CardTitle>
-          <CardDescription>Sign in to manage your wedding</CardDescription>
+          <CardTitle className="font-display text-3xl tracking-wide text-gold drop-shadow-sm">Shadi Prabandhak</CardTitle>
+          <CardDescription className="text-base text-white/85">Sign in to manage your wedding</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="password">

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
+import { PageHeader } from '@/components/PageHeader'
 import { ChecklistBadge } from '@/components/StatusBadges'
 import { Button } from '@/components/ui/button'
 import {
@@ -141,29 +142,29 @@ export function ChecklistPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Checklist</h1>
-          <p className="text-sm text-muted-foreground">Planning timeline until November</p>
-        </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add task</Button></DialogTrigger>
-          <DialogContent><DialogHeader><DialogTitle>Add task</DialogTitle></DialogHeader>
-            <ChecklistForm submitLabel="Add task" onSubmit={(v) => save(v)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title="Checklist"
+        description="Planning timeline until November"
+        action={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add task</Button></DialogTrigger>
+            <DialogContent><DialogHeader><DialogTitle>Add task</DialogTitle></DialogHeader>
+              <ChecklistForm submitLabel="Add task" onSubmit={(v) => save(v)} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {[...grouped.entries()].map(([group, groupItems]) => (
         <section key={group}>
-          <h2 className="mb-3 border-b pb-2 text-sm font-semibold">{group}</h2>
+          <h2 className="mb-3 border-b border-gold/30 pb-2 font-display text-lg font-semibold text-gold">{group}</h2>
           <div className="divide-y rounded-md border">
             {groupItems.map((item) => (
-              <div key={item.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div key={item.id} className="flex flex-col gap-3 p-4">
                 <div className={item.status === 'done' ? 'text-muted-foreground line-through' : ''}>
-                  <p className="text-sm font-medium">{item.title}</p>
-                  {item.due_label && <p className="text-xs text-muted-foreground">{item.due_label}</p>}
+                  <p className="text-base font-semibold">{item.title}</p>
+                  {item.due_label && <p className="text-sm text-muted-foreground">{item.due_label}</p>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Select value={item.status} onValueChange={(v) => statusMutation.mutate({ id: item.id, status: v as ChecklistStatus })}>

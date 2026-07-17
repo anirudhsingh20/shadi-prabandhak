@@ -36,11 +36,11 @@ export function Countdown() {
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-2 max-w-xs" aria-live="polite">
+    <div className="grid grid-cols-4 gap-2" aria-live="polite">
       {units.map((u) => (
-        <div key={u.label} className="rounded-md border bg-muted p-3 text-center">
-          <span className="block text-lg font-semibold tabular-nums">{u.value}</span>
-          <span className="mt-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div key={u.label} className="rounded-md border border-gold/40 bg-white/5 p-2.5 text-center">
+          <span className="font-display block text-2xl font-semibold tabular-nums text-gold">{u.value}</span>
+          <span className="mt-1 block text-xs font-semibold uppercase tracking-wide text-white/70">
             {u.label}
           </span>
         </div>

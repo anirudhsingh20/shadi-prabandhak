@@ -32,7 +32,7 @@ import type { Decision } from '@/lib/types'
 
 const links = [
   { to: '/events', title: 'Events', desc: 'Mehendi, Haldi, Sangeet, Wedding & Reception' },
-  { to: '/guests', title: 'Guests', desc: 'RSVP, sides, dietary notes' },
+  { to: '/guests', title: 'Guests', desc: 'Bride, groom & common · RSVP counts' },
   { to: '/budget', title: 'Budget', desc: 'Category-wise spend' },
   { to: '/vendors', title: 'Vendors', desc: 'Contacts and booking status' },
   { to: '/checklist', title: 'Checklist', desc: 'Timeline until November' },
@@ -129,23 +129,23 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-2xl font-semibold tracking-tight">Shadi Prabandhak</h1>
-        <p className="mt-1 text-muted-foreground">Anjali & Anirudh · 20 November 2026</p>
+        <h1 className="font-display text-4xl font-semibold tracking-wide text-gold">Shadi Prabandhak</h1>
+        <p className="mt-2 text-lg text-white/85">Anjali & Anirudh · 20 November 2026</p>
         <div className="mt-6">
           <Countdown />
         </div>
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold">Overview</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Guests, budget, vendors, and ceremony schedule.</p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <h2 className="font-display text-2xl font-semibold tracking-wide text-gold">Overview</h2>
+        <p className="mt-1 text-base text-white/75">Guests, budget, vendors, and ceremony schedule.</p>
+        <div className="mt-4 grid gap-2">
           {links.map((l) => (
             <Link key={l.to} to={l.to}>
-              <Card className="transition-colors hover:bg-accent">
+              <Card className="border-gold/30 bg-white/5 transition-colors hover:bg-gold/10">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-sm">{l.title}</CardTitle>
-                  <CardDescription className="text-xs">{l.desc}</CardDescription>
+                  <CardTitle className="text-base text-white">{l.title}</CardTitle>
+                  <CardDescription className="text-sm text-white/70">{l.desc}</CardDescription>
                 </CardHeader>
               </Card>
             </Link>
@@ -156,8 +156,8 @@ export function HomePage() {
       <section>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Decision log</h2>
-            <p className="text-sm text-muted-foreground">Notes on what you&apos;ve decided.</p>
+            <h2 className="font-display text-2xl font-semibold tracking-wide text-gold">Decision log</h2>
+            <p className="text-base text-white/75">Notes on what you&apos;ve decided.</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -179,19 +179,19 @@ export function HomePage() {
           </Dialog>
         </div>
 
-        <div className="mt-4 divide-y rounded-md border">
-          {isLoading && <p className="p-4 text-sm text-muted-foreground">Loading…</p>}
+        <div className="mt-4 divide-y divide-gold/25 rounded-md border border-gold/30 bg-white/5">
+          {isLoading && <p className="p-4 text-sm text-white/70">Loading…</p>}
           {!isLoading && decisions.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground">No decisions yet.</p>
+            <p className="p-4 text-sm text-white/70">No decisions yet.</p>
           )}
           {decisions.map((d) => (
             <div key={d.id} className="flex items-start justify-between gap-4 p-4">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">{d.decision_date}</p>
-                <p className="mt-1 text-sm">{d.text}</p>
+                <p className="text-sm font-medium text-gold/85">{d.decision_date}</p>
+                <p className="mt-1 text-base text-white">{d.text}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setDeleteId(d.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
+                <Trash2 className="h-4 w-4 text-white/70" />
               </Button>
             </div>
           ))}
