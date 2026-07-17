@@ -33,9 +33,11 @@ import type { Decision } from '@/lib/types'
 const links = [
   { to: '/events', title: 'Events', desc: 'Mehendi, Haldi, Sangeet, Wedding & Reception' },
   { to: '/guests', title: 'Guests', desc: 'Bride, groom & common · RSVP counts' },
-  { to: '/budget', title: 'Budget', desc: 'Category-wise spend' },
+  { to: '/budget', title: 'Budget', desc: 'Bank balance, categories & charts' },
+  { to: '/tracker', title: 'Tracker', desc: 'Payments — done, pending, may come' },
   { to: '/vendors', title: 'Vendors', desc: 'Contacts and booking status' },
   { to: '/checklist', title: 'Checklist', desc: 'Timeline until November' },
+  { to: '/ideas', title: 'Ideas', desc: 'tldraw whiteboard for wedding ideas' },
 ]
 
 function DecisionForm({ onSuccess }: { onSuccess: () => void }) {

@@ -30,8 +30,24 @@ export const guestSchema = z.object({
 export const budgetCategorySchema = z.object({
   name: z.string().min(2, 'Name is required'),
   allocated: z.coerce.number().min(0, 'Must be 0 or more'),
-  spent: z.coerce.number().min(0, 'Must be 0 or more'),
   sort_order: z.coerce.number().int().min(0).default(0),
+})
+
+export const moneyInBankSchema = z.object({
+  money_in_bank: z.coerce.number().min(0, 'Must be 0 or more'),
+})
+
+export const totalBudgetSchema = z.object({
+  total_budget: z.coerce.number().min(0, 'Must be 0 or more'),
+})
+
+export const budgetPaymentSchema = z.object({
+  title: z.string().min(2, 'Title is required'),
+  amount: z.coerce.number().min(0, 'Must be 0 or more'),
+  status: z.enum(['done', 'pending', 'may_come']),
+  category_id: z.string().uuid().optional().or(z.literal('')),
+  due_date: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 export const vendorSchema = z.object({
@@ -61,6 +77,9 @@ export type LoginMagicLinkInput = z.infer<typeof loginMagicLinkSchema>
 export type EventInput = z.infer<typeof eventSchema>
 export type GuestInput = z.infer<typeof guestSchema>
 export type BudgetCategoryInput = z.infer<typeof budgetCategorySchema>
+export type MoneyInBankInput = z.infer<typeof moneyInBankSchema>
+export type TotalBudgetInput = z.infer<typeof totalBudgetSchema>
+export type BudgetPaymentInput = z.infer<typeof budgetPaymentSchema>
 export type VendorInput = z.infer<typeof vendorSchema>
 export type ChecklistItemInput = z.infer<typeof checklistItemSchema>
 export type DecisionInput = z.infer<typeof decisionSchema>

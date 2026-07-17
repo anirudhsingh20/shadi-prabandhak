@@ -98,4 +98,13 @@
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
+
+  /* tldraw board inside mobile shell */
+  .ideas-tldraw .tl-theme__light,
+  .ideas-tldraw .tl-container {
+    --color-background: #fffbf5;
+  }
+  .ideas-tldraw .tl-container {
+    height: 100%;
+  }
 }

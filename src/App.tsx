@@ -10,16 +10,21 @@ import { ChecklistPage } from '@/pages/ChecklistPage'
 import { EventsPage } from '@/pages/EventsPage'
 import { GuestsPage } from '@/pages/GuestsPage'
 import { HomePage } from '@/pages/HomePage'
+import { IdeasPage } from '@/pages/IdeasPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { TrackerPage } from '@/pages/TrackerPage'
 import { VendorsPage } from '@/pages/VendorsPage'
 
 const queryClient = new QueryClient()
+
+/** Vite `base` without trailing slash — required for GitHub Pages project sites. */
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -34,8 +39,10 @@ export default function App() {
               <Route path="events" element={<EventsPage />} />
               <Route path="guests" element={<GuestsPage />} />
               <Route path="budget" element={<BudgetPage />} />
+              <Route path="tracker" element={<TrackerPage />} />
               <Route path="vendors" element={<VendorsPage />} />
               <Route path="checklist" element={<ChecklistPage />} />
+              <Route path="ideas" element={<IdeasPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

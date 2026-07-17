@@ -16,8 +16,10 @@ const navItems = [
   { to: '/events', label: 'Events' },
   { to: '/guests', label: 'Guests' },
   { to: '/budget', label: 'Budget' },
+  { to: '/tracker', label: 'Tracker' },
   { to: '/vendors', label: 'Vendors' },
   { to: '/checklist', label: 'Checklist' },
+  { to: '/ideas', label: 'Ideas' },
 ]
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {

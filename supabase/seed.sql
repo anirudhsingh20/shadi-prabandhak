@@ -1,9 +1,11 @@
 -- Seed data for Shadi Prabandhak
 -- Run after schema.sql
 
-insert into weddings (id, bride_name, groom_name, wedding_date)
-values ('00000000-0000-0000-0000-000000000001', 'Anjali', 'Anirudh', '2026-11-20')
-on conflict (id) do nothing;
+insert into weddings (id, bride_name, groom_name, wedding_date, money_in_bank, total_budget)
+values ('00000000-0000-0000-0000-000000000001', 'Anjali', 'Anirudh', '2026-11-20', 2000000, 2500000)
+on conflict (id) do update set
+  money_in_bank = excluded.money_in_bank,
+  total_budget = excluded.total_budget;
 
 insert into events (wedding_id, name, event_date, time_label, venue, tag, sort_order) values
 ('00000000-0000-0000-0000-000000000001', 'Mehendi', '2026-11-17', '4:00 PM onwards', 'Bride''s side venue · Henna, music, light bites', 'Day 1', 1),
@@ -24,15 +26,29 @@ insert into guests (wedding_id, name, side, rsvp_status, headcount, events_atten
 ('00000000-0000-0000-0000-000000000001', 'College batch 2018', 'common', 'confirmed', 6, 'Sangeet, Reception', 'Mutual friends'),
 ('00000000-0000-0000-0000-000000000001', 'Office team leads', 'common', 'pending', 4, 'Reception', 'Shared workplace');
 
-insert into budget_categories (wedding_id, name, allocated, spent, sort_order) values
-('00000000-0000-0000-0000-000000000001', 'Venue & Decor', 800000, 420000, 1),
-('00000000-0000-0000-0000-000000000001', 'Catering', 600000, 180000, 2),
-('00000000-0000-0000-0000-000000000001', 'Photography & Video', 250000, 150000, 3),
-('00000000-0000-0000-0000-000000000001', 'Outfits & Jewellery', 300000, 90000, 4),
-('00000000-0000-0000-0000-000000000001', 'Mehendi & Makeup', 100000, 40000, 5),
-('00000000-0000-0000-0000-000000000001', 'Music & Entertainment', 150000, 50000, 6),
-('00000000-0000-0000-0000-000000000001', 'Invites & Gifts', 100000, 20000, 7),
-('00000000-0000-0000-0000-000000000001', 'Misc & Buffer', 200000, 0, 8);
+insert into budget_categories (id, wedding_id, name, allocated, spent, sort_order) values
+('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Venue & Decor', 800000, 420000, 1),
+('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Catering', 600000, 180000, 2),
+('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Photography & Video', 250000, 150000, 3),
+('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Outfits & Jewellery', 300000, 90000, 4),
+('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Mehendi & Makeup', 100000, 40000, 5),
+('10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000001', 'Music & Entertainment', 150000, 50000, 6),
+('10000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000001', 'Invites & Gifts', 100000, 20000, 7),
+('10000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000001', 'Misc & Buffer', 200000, 0, 8)
+on conflict (id) do nothing;
+
+insert into budget_payments (wedding_id, category_id, title, amount, status, due_date, notes) values
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Venue booking advance', 420000, 'done', '2026-06-15', 'First tranche'),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'Catering token', 180000, 'done', '2026-07-01', null),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'Photo & video booking', 150000, 'done', '2026-06-20', null),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', 'Outfit deposits', 90000, 'done', '2026-07-05', null),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000005', 'Mehendi artist booking', 40000, 'done', '2026-07-10', null),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000006', 'DJ booking advance', 50000, 'done', '2026-07-12', null),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000007', 'Invite printing', 20000, 'done', '2026-07-15', null),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Venue balance', 380000, 'pending', '2026-11-01', 'Due before wedding'),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'Catering balance', 420000, 'pending', '2026-11-10', null),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'Album & extras', 50000, 'may_come', null, 'Optional add-ons'),
+('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000008', 'Guest transport', 75000, 'may_come', '2026-11-15', 'If needed');
 
 insert into vendors (wedding_id, type, name, phone, email, notes, status) values
 ('00000000-0000-0000-0000-000000000001', 'Venue', 'Grand Heritage Banquet', '+91 98765 43210', 'venue@example.com', 'Capacity 500 · Lawn + hall', 'shortlisted'),
@@ -66,3 +82,7 @@ insert into decisions (wedding_id, decision_date, text) values
 ('00000000-0000-0000-0000-000000000001', '2026-07-05', 'Five-event Indian ceremony: Mehendi → Haldi → Sangeet → Wedding → Reception'),
 ('00000000-0000-0000-0000-000000000001', '2026-07-10', 'Venue shortlist in progress — final visit scheduled'),
 ('00000000-0000-0000-0000-000000000001', '2026-07-15', 'Guest list draft: ~250 families (both sides combined)');
+
+insert into idea_boards (wedding_id, state) values
+('00000000-0000-0000-0000-000000000001', '{"document": null}'::jsonb)
+on conflict (wedding_id) do nothing;

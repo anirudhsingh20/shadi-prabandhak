@@ -70,10 +70,27 @@ Every add/edit dialog uses **react-hook-form + Zod** validation and an explicit 
 
 ## Deploy
 
-- **Frontend:** Vercel, Netlify, or any static host (`npm run build`)
+### GitHub Pages (this repo)
+
+1. Repo **Settings → Pages → Source: GitHub Actions**
+2. Add repository secrets:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_ALLOWED_EMAILS`
+3. Push to `main` (or run the **Deploy to GitHub Pages** workflow manually)
+4. In Supabase **Authentication → URL configuration**, add:
+   - Site URL: `https://anirudhsingh20.github.io/shadi-prabandhak`
+   - Redirect URL: `https://anirudhsingh20.github.io/shadi-prabandhak/auth/callback`
+
+App URL: https://anirudhsingh20.github.io/shadi-prabandhak/
+
+### Other hosts
+
+- **Frontend:** Vercel, Netlify, or any static host (`npm run build`) — leave `VITE_BASE_PATH` unset
 - **Backend:** Supabase (already hosted)
-- Add production URL to Supabase redirect URLs and update `.env` on host
+- Add your production URL to Supabase redirect URLs and set the three `VITE_*` env vars on the host
 
 ---
+
 
 Made with love for Anjali & Anirudh

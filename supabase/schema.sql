@@ -9,6 +9,8 @@ create table if not exists weddings (
   bride_name text not null,
   groom_name text not null,
   wedding_date date not null,
+  money_in_bank numeric not null default 0 check (money_in_bank >= 0),
+  total_budget numeric not null default 0 check (total_budget >= 0),
   created_at timestamptz not null default now()
 );
 
@@ -61,6 +63,18 @@ create table if not exists budget_categories (
   sort_order int not null default 0
 );
 
+create table if not exists budget_payments (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  category_id uuid references budget_categories(id) on delete set null,
+  title text not null,
+  amount numeric not null default 0 check (amount >= 0),
+  status text not null check (status in ('done', 'pending', 'may_come')),
+  due_date date,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
 -- Vendors
 create table if not exists vendors (
   id uuid primary key default gen_random_uuid(),
@@ -93,19 +107,30 @@ create table if not exists decisions (
   created_at timestamptz not null default now()
 );
 
+-- Ideas whiteboard (tldraw document snapshot in state.document)
+create table if not exists idea_boards (
+  wedding_id uuid primary key references weddings(id) on delete cascade,
+  state jsonb not null default '{"document": null}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
 -- RLS
 alter table weddings enable row level security;
 alter table events enable row level security;
 alter table guests enable row level security;
 alter table budget_categories enable row level security;
+alter table budget_payments enable row level security;
 alter table vendors enable row level security;
 alter table checklist_items enable row level security;
 alter table decisions enable row level security;
+alter table idea_boards enable row level security;
 
 create policy "Authenticated full access weddings" on weddings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access events" on events for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access guests" on guests for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access budget" on budget_categories for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access budget_payments" on budget_payments for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access vendors" on vendors for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access checklist" on checklist_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access decisions" on decisions for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access idea_boards" on idea_boards for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

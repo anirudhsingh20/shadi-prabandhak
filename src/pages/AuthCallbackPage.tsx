@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { isEmailAllowed } from '@/lib/auth/allowed-emails'
 
@@ -26,7 +26,7 @@ export function AuthCallbackPage() {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-4 text-center">
         <p className="text-sm text-destructive">{error}</p>
-        <a href="/login" className="text-sm underline">Back to login</a>
+        <Link to="/login" className="text-sm underline">Back to login</Link>
       </div>
     )
   }
