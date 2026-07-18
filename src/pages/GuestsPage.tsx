@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { guestSchema, type GuestInput } from '@/lib/validations'
@@ -37,7 +38,10 @@ import type { Event, Guest, GuestSide, RsvpStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const SIDE_STORAGE_KEY = 'shadi-guest-default-side'
+const SIDE_FILTER_STORAGE_KEY = 'shadi-guest-side-filter'
 const SORT_STORAGE_KEY = 'shadi-guest-sort'
+
+type SideFilter = 'all' | GuestSide
 
 type GuestSort = 'created_desc' | 'created_asc' | 'updated_desc' | 'updated_asc' | 'count_desc' | 'count_asc'
 
@@ -87,6 +91,24 @@ function getStoredSide(): GuestSide {
 function setStoredSide(side: GuestSide) {
   try {
     localStorage.setItem(SIDE_STORAGE_KEY, side)
+  } catch {
+    /* ignore */
+  }
+}
+
+function getStoredSideFilter(): SideFilter {
+  try {
+    const v = localStorage.getItem(SIDE_FILTER_STORAGE_KEY)
+    if (v === 'all' || v === 'bride' || v === 'groom' || v === 'common') return v
+  } catch {
+    /* ignore */
+  }
+  return 'bride'
+}
+
+function setStoredSideFilter(side: SideFilter) {
+  try {
+    localStorage.setItem(SIDE_FILTER_STORAGE_KEY, side)
   } catch {
     /* ignore */
   }
@@ -335,7 +357,7 @@ export function GuestsPage() {
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [editGuest, setEditGuest] = useState<Guest | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [sideFilter, setSideFilter] = useState<'all' | GuestSide>('all')
+  const [sideFilter, setSideFilter] = useState<SideFilter>(() => getStoredSideFilter())
   const [rsvpFilter, setRsvpFilter] = useState<'all' | RsvpStatus>('all')
   const [sortBy, setSortBy] = useState<GuestSort>(() => getStoredSort())
 
@@ -537,70 +559,39 @@ export function GuestsPage() {
 
       {!adding && (
         <>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setSideFilter('all')}
-              className={`rounded-md border p-3 text-left transition-colors ${sideFilter === 'all' ? 'border-gold bg-gold/15' : 'border-gold/30 hover:bg-white/10'}`}
-            >
-              <p className="text-sm text-white/75">Total</p>
-              <p className="font-display text-3xl font-semibold text-gold">{counts.together}</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSideFilter('common')}
-              className={`rounded-md border p-3 text-left transition-colors ${sideFilter === 'common' ? 'border-gold bg-gold/15' : 'border-gold/30 hover:bg-white/10'}`}
-            >
-              <div className="mb-1 flex items-center gap-1.5">
-                <SideIcon side="common" className="h-6 w-6" />
-                <p className="text-sm text-white/75">Common</p>
-              </div>
-              <p className="font-display text-3xl font-semibold text-white">{counts.common}</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSideFilter('bride')}
-              className={`rounded-md border p-3 text-left transition-colors ${sideFilter === 'bride' ? 'border-gold bg-gold/15' : 'border-gold/30 hover:bg-white/10'}`}
-            >
-              <div className="mb-1 flex items-center gap-1.5">
-                <SideIcon side="bride" className="h-6 w-6" />
-                <p className="text-sm text-white/75">Bride</p>
-              </div>
-              <p className="font-display text-3xl font-semibold text-white">{counts.bride}</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSideFilter('groom')}
-              className={`rounded-md border p-3 text-left transition-colors ${sideFilter === 'groom' ? 'border-gold bg-gold/15' : 'border-gold/30 hover:bg-white/10'}`}
-            >
-              <div className="mb-1 flex items-center gap-1.5">
-                <SideIcon side="groom" className="h-6 w-6" />
-                <p className="text-sm text-white/75">Groom</p>
-              </div>
-              <p className="font-display text-3xl font-semibold text-white">{counts.groom}</p>
-            </button>
-          </div>
+          <Tabs
+            value={sideFilter}
+            onValueChange={(v) => {
+              const next = v as SideFilter
+              setSideFilter(next)
+              setStoredSideFilter(next)
+            }}
+          >
+            <TabsList className="grid h-auto w-full grid-cols-4 gap-1">
+              <TabsTrigger value="bride" className="px-1 py-2 text-xs sm:text-sm">
+                Bride ({counts.bride})
+              </TabsTrigger>
+              <TabsTrigger value="groom" className="px-1 py-2 text-xs sm:text-sm">
+                Groom ({counts.groom})
+              </TabsTrigger>
+              <TabsTrigger value="common" className="px-1 py-2 text-xs sm:text-sm">
+                Common ({counts.common})
+              </TabsTrigger>
+              <TabsTrigger value="all" className="px-1 py-2 text-xs sm:text-sm">
+                Total ({counts.together})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-          <div className="grid grid-cols-2 gap-2">
-            <Select value={sideFilter} onValueChange={(v) => setSideFilter(v as typeof sideFilter)}>
-              <SelectTrigger><SelectValue placeholder="Side" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All sides</SelectItem>
-                <SelectItem value="bride">Bride</SelectItem>
-                <SelectItem value="groom">Groom</SelectItem>
-                <SelectItem value="common">Common</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={rsvpFilter} onValueChange={(v) => setRsvpFilter(v as typeof rsvpFilter)}>
-              <SelectTrigger><SelectValue placeholder="RSVP" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All RSVP</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="declined">Declined</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={rsvpFilter} onValueChange={(v) => setRsvpFilter(v as typeof rsvpFilter)}>
+            <SelectTrigger><SelectValue placeholder="RSVP" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All RSVP</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="declined">Declined</SelectItem>
+            </SelectContent>
+          </Select>
 
           <Select
             value={sortBy}
