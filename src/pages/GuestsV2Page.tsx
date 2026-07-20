@@ -219,11 +219,18 @@ function GuestDrawerForm({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} dismissible={false} shouldScaleBackground={false}>
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      dismissible={false}
+      shouldScaleBackground={false}
+      repositionInputs={false}
+      fixed
+    >
       <DrawerContent>
-        <DrawerHeader className="relative pr-10 text-left">
+        <DrawerHeader className="relative shrink-0 pr-10 text-left">
           <DrawerTitle>{title}</DrawerTitle>
-          <DrawerDescription>{description}</DrawerDescription>
+          <DrawerDescription className="sr-only">{description}</DrawerDescription>
           <Button
             type="button"
             variant="ghost"
@@ -236,7 +243,7 @@ function GuestDrawerForm({
           </Button>
         </DrawerHeader>
 
-        <div className="space-y-3 overflow-y-auto px-3 pb-1 pt-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 pb-1 pt-2">
           <div className="grid grid-cols-[1fr_auto] items-end gap-2">
             <div className="space-y-1">
               <Label htmlFor="guest-v2-name" className="text-xs text-white/75">
@@ -248,7 +255,7 @@ function GuestDrawerForm({
                 value={draft.name}
                 onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
                 placeholder="Guest name"
-                autoFocus
+                enterKeyHint="done"
               />
             </div>
             <div className="space-y-1">
@@ -379,7 +386,7 @@ function GuestDrawerForm({
           </div>
         </div>
 
-        <DrawerFooter>
+        <DrawerFooter className="shrink-0 border-t border-gold/20">
           <Button onClick={handleSubmit} disabled={saving}>
             {saving ? 'Saving…' : submitLabel}
           </Button>
