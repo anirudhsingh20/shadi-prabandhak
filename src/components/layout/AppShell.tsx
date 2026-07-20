@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   CalendarDays,
   CheckSquare,
+  GitFork,
   Home,
   IndianRupee,
   LayoutGrid,
@@ -37,7 +38,8 @@ const primaryTabs: TabItem[] = [
 ]
 
 const moreItems: TabItem[] = [
-  { to: '/guests-v2', label: 'Guests v2', icon: Users },
+  { to: '/guests-classic', label: 'Guests classic', icon: Users },
+  { to: '/family-tree', label: 'Family tree', icon: GitFork },
   { to: '/events', label: 'Events', icon: CalendarDays },
   { to: '/budget', label: 'Budget', icon: IndianRupee },
   { to: '/vendors', label: 'Vendors', icon: Store },

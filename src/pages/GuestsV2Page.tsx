@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Minus, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { GitFork, Minus, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,16 @@ const FILTER_TABS: { value: SideTab; label: string }[] = [
   { value: 'bride', label: 'Bride' },
   { value: 'groom', label: 'Groom' },
   { value: 'common', label: 'Mutual' },
+]
+
+const SIDE_SECTIONS: GuestSide[] = ['bride', 'groom', 'common']
+
+const RELATION_SECTIONS: { key: GuestRelation | 'none'; label: string }[] = [
+  { key: 'father', label: 'Father' },
+  { key: 'mother', label: 'Mother' },
+  { key: 'friends', label: 'Friends' },
+  { key: 'other', label: 'Other' },
+  { key: 'none', label: 'Unspecified' },
 ]
 
 function parseSelectedEvents(stored: string | null | undefined, eventNames: string[]): string[] {
@@ -165,10 +176,11 @@ function GuestDrawerForm({
 }) {
   const [draft, setDraft] = useState(initial)
   const [saving, setSaving] = useState(false)
+  const [nameFocused, setNameFocused] = useState(false)
 
   const matches = useMemo(
-    () => similarGuests(draft.name, existingGuests, excludeGuestId),
-    [draft.name, existingGuests, excludeGuestId],
+    () => (nameFocused ? similarGuests(draft.name, existingGuests, excludeGuestId) : []),
+    [nameFocused, draft.name, existingGuests, excludeGuestId],
   )
 
   const allSelected = eventNames.length > 0 && draft.events.length === eventNames.length
@@ -254,6 +266,8 @@ function GuestDrawerForm({
                 className="h-9"
                 value={draft.name}
                 onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
                 placeholder="Guest name"
                 enterKeyHint="done"
               />
@@ -396,6 +410,45 @@ function GuestDrawerForm({
   )
 }
 
+function pax(g: Pick<Guest, 'headcount'>) {
+  return Math.max(1, Number(g.headcount) || 1)
+}
+
+function sortByNameAsc(list: Guest[]) {
+  return [...list].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+}
+
+function GuestRow({
+  guest,
+  onEdit,
+  onDelete,
+}: {
+  guest: Guest
+  onEdit: (g: Guest) => void
+  onDelete: (id: string) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-gold/15 px-3 py-2 last:border-b-0">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-white">{guest.name}</p>
+        <p className="truncate text-[11px] text-white/50">
+          {pax(guest)} {pax(guest) === 1 ? 'person' : 'people'}
+          {guest.events_attending ? ` · ${guest.events_attending}` : ''}
+          {guest.notes ? ` · ${guest.notes}` : ''}
+        </p>
+      </div>
+      <div className="flex shrink-0 gap-0.5">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(guest)}>
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(guest.id)}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function GuestList({
   guests,
   onEdit,
@@ -405,35 +458,66 @@ function GuestList({
   onEdit: (g: Guest) => void
   onDelete: (id: string) => void
 }) {
+  const sections = useMemo(() => {
+    const sidesPresent = SIDE_SECTIONS.filter((side) => guests.some((g) => g.side === side))
+
+    return sidesPresent.map((side) => {
+      const sideGuests = guests.filter((g) => g.side === side)
+      const relations = RELATION_SECTIONS.map(({ key, label }) => {
+        const list = sortByNameAsc(
+          sideGuests.filter((g) => {
+            if (key === 'none') return !g.relation
+            return g.relation === key
+          }),
+        )
+        return {
+          key,
+          label,
+          guests: list,
+          total: list.reduce((n, g) => n + pax(g), 0),
+        }
+      }).filter((r) => r.guests.length > 0)
+
+      return {
+        side,
+        label: SIDE_LABEL[side],
+        total: sideGuests.reduce((n, g) => n + pax(g), 0),
+        relations,
+      }
+    })
+  }, [guests])
+
   if (guests.length === 0) {
     return <p className="py-8 text-center text-sm text-white/60">No guests in this tab yet.</p>
   }
 
   return (
-    <div className="space-y-2">
-      {guests.map((g) => (
-        <div
-          key={g.id}
-          className="flex items-start justify-between gap-2 rounded-md border border-gold/30 bg-white/5 px-3 py-3"
-        >
-          <div className="min-w-0 flex-1">
-            <p className="text-base font-semibold text-white">{g.name}</p>
-            <p className="mt-0.5 text-sm text-white/70">
-              {g.headcount} {g.headcount === 1 ? 'person' : 'people'}
-              {g.relation ? ` · ${RELATION_LABEL[g.relation]}` : ''}
-              {g.events_attending ? ` · ${g.events_attending}` : ''}
-            </p>
-            {g.notes && <p className="mt-1 text-sm text-white/55">{g.notes}</p>}
+    <div className="space-y-3">
+      {sections.map((section) => (
+        <section key={section.side} className="overflow-hidden rounded-md border border-gold/40">
+          <header className="flex items-center justify-between gap-2 border-b border-gold/40 bg-gold/10 px-3 py-2">
+            <h2 className="text-sm font-semibold tracking-wide text-gold">{section.label}</h2>
+            <span className="text-[11px] tabular-nums text-white/55">{section.total}</span>
+          </header>
+
+          <div className="divide-y divide-gold/25">
+            {section.relations.map((rel) => (
+              <div key={rel.key}>
+                <div className="flex items-center justify-between gap-2 border-b border-gold/20 bg-white/[0.03] px-3 py-1.5">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-white/55">
+                    {rel.label}
+                  </p>
+                  <span className="text-[11px] tabular-nums text-white/40">{rel.total}</span>
+                </div>
+                <div>
+                  {rel.guests.map((g) => (
+                    <GuestRow key={g.id} guest={g} onEdit={onEdit} onDelete={onDelete} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="flex shrink-0 gap-0.5">
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onEdit(g)}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onDelete(g.id)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        </section>
       ))}
     </div>
   )
@@ -544,12 +628,19 @@ export function GuestsV2Page() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Guest list v2"
+        title="Guest list"
         description="Simple list with drawer add."
         action={
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Add
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/family-tree">
+                <GitFork className="mr-1 h-3.5 w-3.5" /> Tree
+              </Link>
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Add
+            </Button>
+          </div>
         }
       />
 
