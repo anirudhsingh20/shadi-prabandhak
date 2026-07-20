@@ -15,7 +15,6 @@ interface AuthContextValue {
   session: Session | null
   user: User | null
   loading: boolean
-  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
@@ -58,14 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signInWithPassword = useCallback(async (email: string, password: string) => {
-    if (!isEmailAllowed(email)) {
-      return { error: 'Access denied. Your email is not authorized.' }
-    }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
-  }, [])
-
   const signInWithMagicLink = useCallback(async (email: string) => {
     if (!isEmailAllowed(email)) {
       return { error: 'Access denied. Your email is not authorized.' }
@@ -88,11 +79,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       loading,
-      signInWithPassword,
       signInWithMagicLink,
       signOut,
     }),
-    [session, loading, signInWithPassword, signInWithMagicLink, signOut],
+    [session, loading, signInWithMagicLink, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

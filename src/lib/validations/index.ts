@@ -1,10 +1,5 @@
 import { z } from 'zod'
 
-export const loginPasswordSchema = z.object({
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-})
-
 export const loginMagicLinkSchema = z.object({
   email: z.string().email('Enter a valid email'),
 })
@@ -72,7 +67,6 @@ export const decisionSchema = z.object({
   text: z.string().min(3, 'Note must be at least 3 characters'),
 })
 
-export type LoginPasswordInput = z.infer<typeof loginPasswordSchema>
 export type LoginMagicLinkInput = z.infer<typeof loginMagicLinkSchema>
 export type EventInput = z.infer<typeof eventSchema>
 export type GuestInput = z.infer<typeof guestSchema>

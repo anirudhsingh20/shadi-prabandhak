@@ -13,7 +13,7 @@ Built with **Vite + React + shadcn/ui + Supabase**.
 - **Vendors** — contacts and booking status
 - **Checklist** — grouped timeline with status toggles
 - **Decision log** — planning notes on home page
-- **Auth** — password + magic link, restricted to allowed emails
+- **Auth** — magic link only, restricted to allowed emails
 
 ## Quick start
 
