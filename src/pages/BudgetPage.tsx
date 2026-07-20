@@ -381,10 +381,10 @@ export function BudgetPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-display text-xl font-semibold text-gold">Tracker snapshot</h2>
+          <h2 className="font-display text-xl font-semibold text-gold">Payments snapshot</h2>
           <Button size="sm" variant="outline" asChild>
-            <Link to="/tracker">
-              Open tracker <ArrowRight className="ml-1 h-4 w-4" />
+            <Link to="/payments">
+              Open payments <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -392,7 +392,7 @@ export function BudgetPage() {
         {!isLoading && upcoming.length === 0 && (
           <p className="rounded-md border border-gold/30 bg-white/5 p-3 text-sm text-white/70">
             No pending or may-come payments.{' '}
-            <Link to="/tracker" className="text-gold underline-offset-4 hover:underline">Manage tracker</Link>
+            <Link to="/payments" className="text-gold underline-offset-4 hover:underline">Manage payments</Link>
           </p>
         )}
         {upcoming.map((p) => (

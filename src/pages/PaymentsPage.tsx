@@ -30,7 +30,7 @@ import { formatCurrency } from '@/lib/utils'
 import type { BudgetPaymentInput } from '@/lib/validations'
 import type { BudgetCategory, BudgetPayment, BudgetPaymentStatus } from '@/lib/types'
 
-export function TrackerPage() {
+export function PaymentsPage() {
   const qc = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [editPay, setEditPay] = useState<BudgetPayment | null>(null)
@@ -143,7 +143,7 @@ export function TrackerPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tracker"
+        title="Payments"
         description="Payments — done, pending & may come"
         action={
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>

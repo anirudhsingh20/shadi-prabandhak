@@ -31,16 +31,16 @@ export function Countdown() {
   const units = [
     { value: time.days, label: 'Days' },
     { value: pad(time.hours), label: 'Hours' },
-    { value: pad(time.minutes), label: 'Min' },
-    { value: pad(time.seconds), label: 'Sec' },
+    { value: pad(time.minutes), label: 'Mins' },
+    { value: pad(time.seconds), label: 'Secs' },
   ]
 
   return (
     <div className="grid grid-cols-4 gap-2" aria-live="polite">
       {units.map((u) => (
-        <div key={u.label} className="rounded-md border border-gold/40 bg-white/5 p-2.5 text-center">
-          <span className="font-display block text-2xl font-semibold tabular-nums text-gold">{u.value}</span>
-          <span className="mt-1 block text-xs font-semibold uppercase tracking-wide text-white/70">
+        <div key={u.label} className="rounded-md border border-gold/40 bg-white/5 p-2 text-center">
+          <span className="font-display block text-lg font-semibold tabular-nums text-gold">{u.value}</span>
+          <span className="block text-[8px] font-semibold uppercase tracking-wide text-white/70">
             {u.label}
           </span>
         </div>

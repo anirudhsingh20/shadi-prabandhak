@@ -1,5 +1,6 @@
 export type RsvpStatus = 'confirmed' | 'pending' | 'declined'
 export type GuestSide = 'bride' | 'groom' | 'common'
+export type GuestRelation = 'father' | 'mother' | 'friends' | 'other'
 export type VendorStatus = 'booked' | 'shortlisted'
 export type ChecklistStatus = 'done' | 'next' | 'later'
 export type BudgetPaymentStatus = 'done' | 'pending' | 'may_come'
@@ -32,6 +33,7 @@ export interface Guest {
   rsvp_status: RsvpStatus
   headcount: number
   events_attending: string | null
+  relation: GuestRelation | null
   notes: string | null
   created_at: string
   updated_at: string

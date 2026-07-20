@@ -13,7 +13,7 @@ Built with **Vite + React + shadcn/ui + Supabase**.
 - **Vendors** — contacts and booking status
 - **Checklist** — grouped timeline with status toggles
 - **Decision log** — planning notes on home page
-- **Auth** — magic link only, restricted to allowed emails
+- **Auth** — email + password, restricted to allowed emails
 
 ## Quick start
 
@@ -22,8 +22,7 @@ Built with **Vite + React + shadcn/ui + Supabase**.
 1. Create a free project at [supabase.com](https://supabase.com)
 2. In **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql) then [`supabase/seed.sql`](supabase/seed.sql)
 3. In **Authentication → Providers**, enable Email
-4. Add redirect URL: `http://localhost:5173/auth/callback` (and your production URL later)
-5. Create user accounts in **Authentication → Users** (or sign up via magic link)
+4. Create users in **Authentication → Users** with email + password (auto-confirm so they can sign in immediately)
 
 ### 2. Environment
 
@@ -78,9 +77,7 @@ Every add/edit dialog uses **react-hook-form + Zod** validation and an explicit 
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_ALLOWED_EMAILS`
 3. Push to `main` (or run the **Deploy to GitHub Pages** workflow manually)
-4. In Supabase **Authentication → URL configuration**, add:
-   - Site URL: `https://anirudhsingh20.github.io/shadi-prabandhak`
-   - Redirect URL: `https://anirudhsingh20.github.io/shadi-prabandhak/auth/callback`
+4. In Supabase **Authentication → URL configuration**, set Site URL to `https://anirudhsingh20.github.io/shadi-prabandhak`
 
 App URL: https://anirudhsingh20.github.io/shadi-prabandhak/
 
@@ -88,7 +85,7 @@ App URL: https://anirudhsingh20.github.io/shadi-prabandhak/
 
 - **Frontend:** Vercel, Netlify, or any static host (`npm run build`) — leave `VITE_BASE_PATH` unset
 - **Backend:** Supabase (already hosted)
-- Add your production URL to Supabase redirect URLs and set the three `VITE_*` env vars on the host
+- Set the three `VITE_*` env vars on the host
 
 ---
 

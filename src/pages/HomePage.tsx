@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,7 +7,6 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Countdown } from '@/components/Countdown'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { Button } from '@/components/ui/button'
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -29,16 +27,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { decisionSchema, type DecisionInput } from '@/lib/validations'
 import type { Decision } from '@/lib/types'
-
-const links = [
-  { to: '/events', title: 'Events', desc: 'Mehendi, Haldi, Sangeet, Wedding & Reception' },
-  { to: '/guests', title: 'Guests', desc: 'Bride, groom & common · RSVP counts' },
-  { to: '/budget', title: 'Budget', desc: 'Bank balance, categories & charts' },
-  { to: '/tracker', title: 'Tracker', desc: 'Payments — done, pending, may come' },
-  { to: '/vendors', title: 'Vendors', desc: 'Contacts and booking status' },
-  { to: '/checklist', title: 'Checklist', desc: 'Timeline until November' },
-  { to: '/ideas', title: 'Ideas', desc: 'tldraw whiteboard for wedding ideas' },
-]
 
 function DecisionForm({ onSuccess }: { onSuccess: () => void }) {
   const form = useForm<DecisionInput>({
@@ -131,27 +119,9 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="font-display text-4xl font-semibold tracking-wide text-gold">Shadi Prabandhak</h1>
-        <p className="mt-2 text-lg text-white/85">Anjali & Anirudh · 20 November 2026</p>
-        <div className="mt-6">
+        <p className="mt-1 text-xs text-white/85">Anjali & Anirudh · 20 November 2026</p>
+        <div className="mt-1">
           <Countdown />
-        </div>
-      </section>
-
-      <section>
-        <h2 className="font-display text-2xl font-semibold tracking-wide text-gold">Overview</h2>
-        <p className="mt-1 text-base text-white/75">Guests, budget, vendors, and ceremony schedule.</p>
-        <div className="mt-4 grid gap-2">
-          {links.map((l) => (
-            <Link key={l.to} to={l.to}>
-              <Card className="border-gold/30 bg-white/5 transition-colors hover:bg-gold/10">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-base text-white">{l.title}</CardTitle>
-                  <CardDescription className="text-sm text-white/70">{l.desc}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
         </div>
       </section>
 

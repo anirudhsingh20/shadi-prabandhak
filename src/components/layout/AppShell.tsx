@@ -1,7 +1,18 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
-import { Menu, LogOut } from 'lucide-react'
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import {
+  CalendarDays,
+  CheckSquare,
+  Home,
+  IndianRupee,
+  LayoutGrid,
+  Lightbulb,
+  ListChecks,
+  LogOut,
+  MoreHorizontal,
+  Store,
+  Users,
+} from 'lucide-react'
+import { useState, type ComponentType } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,84 +22,130 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
-const navItems = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/events', label: 'Events' },
-  { to: '/guests', label: 'Guests' },
-  { to: '/budget', label: 'Budget' },
-  { to: '/tracker', label: 'Tracker' },
-  { to: '/vendors', label: 'Vendors' },
-  { to: '/checklist', label: 'Checklist' },
-  { to: '/ideas', label: 'Ideas' },
+type TabItem = {
+  to: string
+  label: string
+  icon: ComponentType<{ className?: string }>
+  end?: boolean
+}
+
+const primaryTabs: TabItem[] = [
+  { to: '/', label: 'Home', icon: Home, end: true },
+  { to: '/guests', label: 'Guests', icon: Users },
+  { to: '/payments', label: 'Payments', icon: ListChecks },
+  { to: '/overview', label: 'Overview', icon: LayoutGrid },
 ]
 
-function NavItems({ onNavigate }: { onNavigate?: () => void }) {
-  return (
-    <>
-      {navItems.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              'block rounded-md px-3 py-2.5 text-base font-medium transition-colors',
-              isActive
-                ? 'bg-gold text-gold-foreground shadow-sm'
-                : 'text-white/85 hover:bg-white/10 hover:text-gold',
-            )
-          }
-        >
-          {item.label}
-        </NavLink>
-      ))}
-    </>
-  )
-}
+const moreItems: TabItem[] = [
+  { to: '/guests-v2', label: 'Guests v2', icon: Users },
+  { to: '/events', label: 'Events', icon: CalendarDays },
+  { to: '/budget', label: 'Budget', icon: IndianRupee },
+  { to: '/vendors', label: 'Vendors', icon: Store },
+  { to: '/checklist', label: 'Checklist', icon: CheckSquare },
+  { to: '/ideas', label: 'Ideas', icon: Lightbulb },
+]
+
+const morePaths = new Set(moreItems.map((item) => item.to))
 
 export function AppShell() {
   const { signOut } = useAuth()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreActive = morePaths.has(location.pathname)
 
   return (
     <div className="wedding-bg flex min-h-dvh justify-center">
       <div className="wedding-shell flex w-full max-w-[430px] flex-col border-x border-gold/40 shadow-[0_0_48px_rgba(212,168,83,0.14)]">
-        <header className="wedding-chrome sticky top-0 z-50 border-b border-gold/40">
-          <div className="flex h-14 items-center justify-between gap-3 px-4">
-            <Link to="/" className="font-display truncate text-xl font-semibold tracking-wide text-gold drop-shadow-sm">
-              Shadi Prabandhak
-            </Link>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Button variant="outline" size="icon" onClick={() => signOut()} aria-label="Logout">
-                <LogOut className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={() => setMenuOpen(true)} aria-label="Open menu">
-                <Menu className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-          <DialogContent className="max-w-[min(100%,24rem)] border-gold/40 bg-[#10081c]">
-            <DialogHeader>
-              <DialogTitle className="font-display text-gold">Menu</DialogTitle>
-            </DialogHeader>
-            <nav className="flex flex-col gap-1">
-              <NavItems onNavigate={() => setMenuOpen(false)} />
-            </nav>
-          </DialogContent>
-        </Dialog>
-
-        <main className="relative flex-1 px-4 py-5">
+        <main className="relative flex-1 px-4 py-5 pb-24">
           <Outlet />
         </main>
 
-        <footer className="wedding-chrome border-t border-gold/40 py-5 text-center text-sm text-white/80">
-          <strong className="font-display text-base font-semibold tracking-wide text-gold">Shadi Prabandhak</strong>
-          {' · '}Anjali & Anirudh · 20 November 2026
-        </footer>
+        <nav
+          className="wedding-chrome fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-x border-gold/40 pb-[env(safe-area-inset-bottom)]"
+          aria-label="Primary"
+        >
+          <div className="grid h-16 grid-cols-5">
+            {primaryTabs.map((item) => {
+              const Icon = item.icon
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors',
+                      isActive ? 'text-gold' : 'text-white/55 hover:text-white/85',
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon className={cn('h-5 w-5', isActive && 'drop-shadow-[0_0_6px_rgba(212,168,83,0.45)]')} />
+                      <span>{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              )
+            })}
+            <button
+              type="button"
+              onClick={() => setMoreOpen(true)}
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors',
+                moreActive ? 'text-gold' : 'text-white/55 hover:text-white/85',
+              )}
+              aria-label="More"
+            >
+              <MoreHorizontal
+                className={cn('h-5 w-5', moreActive && 'drop-shadow-[0_0_6px_rgba(212,168,83,0.45)]')}
+              />
+              <span>More</span>
+            </button>
+          </div>
+        </nav>
+
+        <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
+          <DialogContent className="max-w-[min(100%,24rem)] border-gold/40 bg-[#10081c]">
+            <DialogHeader>
+              <DialogTitle className="font-display text-gold">More</DialogTitle>
+            </DialogHeader>
+            <nav className="grid gap-1">
+              {moreItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMoreOpen(false)}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium transition-colors',
+                        isActive
+                          ? 'bg-gold text-gold-foreground shadow-sm'
+                          : 'text-white/85 hover:bg-white/10 hover:text-gold',
+                      )
+                    }
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    {item.label}
+                  </NavLink>
+                )
+              })}
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreOpen(false)
+                  void signOut()
+                }}
+                className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-gold"
+              >
+                <LogOut className="h-5 w-5 shrink-0" />
+                Log out
+              </button>
+            </nav>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

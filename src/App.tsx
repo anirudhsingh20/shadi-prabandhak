@@ -4,15 +4,16 @@ import { Toaster } from 'sonner'
 import { AppShell } from '@/components/layout/AppShell'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AuthProvider } from '@/hooks/useAuth'
-import { AuthCallbackPage } from '@/pages/AuthCallbackPage'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { ChecklistPage } from '@/pages/ChecklistPage'
 import { EventsPage } from '@/pages/EventsPage'
 import { GuestsPage } from '@/pages/GuestsPage'
+import { GuestsV2Page } from '@/pages/GuestsV2Page'
 import { HomePage } from '@/pages/HomePage'
 import { IdeasPage } from '@/pages/IdeasPage'
 import { LoginPage } from '@/pages/LoginPage'
-import { TrackerPage } from '@/pages/TrackerPage'
+import { OverviewPage } from '@/pages/OverviewPage'
+import { PaymentsPage } from '@/pages/PaymentsPage'
 import { VendorsPage } from '@/pages/VendorsPage'
 
 const queryClient = new QueryClient()
@@ -27,7 +28,6 @@ export default function App() {
         <BrowserRouter basename={routerBasename}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route
               element={
                 <ProtectedRoute>
@@ -36,10 +36,13 @@ export default function App() {
               }
             >
               <Route index element={<HomePage />} />
+              <Route path="overview" element={<OverviewPage />} />
               <Route path="events" element={<EventsPage />} />
               <Route path="guests" element={<GuestsPage />} />
+              <Route path="guests-v2" element={<GuestsV2Page />} />
               <Route path="budget" element={<BudgetPage />} />
-              <Route path="tracker" element={<TrackerPage />} />
+              <Route path="payments" element={<PaymentsPage />} />
+              <Route path="tracker" element={<Navigate to="/payments" replace />} />
               <Route path="vendors" element={<VendorsPage />} />
               <Route path="checklist" element={<ChecklistPage />} />
               <Route path="ideas" element={<IdeasPage />} />

@@ -35,6 +35,7 @@ create table if not exists guests (
   rsvp_status text not null check (rsvp_status in ('confirmed', 'pending', 'declined')),
   headcount int not null default 1 check (headcount >= 1),
   events_attending text,
+  relation text check (relation is null or relation in ('father', 'mother', 'friends', 'other')),
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
