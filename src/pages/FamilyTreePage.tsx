@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
@@ -64,20 +64,20 @@ function buildTree(guests: Guest[], sides: SideFilter[]): TreeSide[] {
 
 /* —— layout constants —— */
 const PAD = 24
-const ROOT_W = 88
-const ROOT_H = 34
-const SIDE_W = 100
-const SIDE_H = 36
-const REL_W = 78
-const REL_H = 40
-const GUEST_W = 78
-const GUEST_H = 28
+const ROOT_W = 120
+const ROOT_H = 36
+const SIDE_W = 128
+const SIDE_H = 40
+const REL_W = 110
+const REL_H = 42
+const GUEST_W = 120
+const GUEST_H = 32
 const V1 = 56 // root → side
 const V2 = 52 // side → relation
 const V3 = 10 // relation → first guest
 const GUEST_GAP = 6
-const REL_GAP = 14
-const SIDE_GAP = 36
+const REL_GAP = 18
+const SIDE_GAP = 40
 
 type Box = { id: string; label: string; sub?: string; x: number; y: number; w: number; h: number; kind: 'root' | 'side' | 'rel' | 'guest' }
 type Edge = { x1: number; y1: number; x2: number; y2: number }
@@ -262,7 +262,7 @@ function TreeNode({ box }: { box: Box }) {
         )}
         style={{ fontSize: isGuest ? 9 : isRel ? 10 : 11, fontFamily: 'inherit' }}
       >
-        {box.label.length > 11 && isGuest ? `${box.label.slice(0, 10)}…` : box.label}
+        {box.label.length > 16 && isGuest ? `${box.label.slice(0, 15)}…` : box.label}
       </text>
       {box.sub && (
         <text
@@ -280,8 +280,66 @@ function TreeNode({ box }: { box: Box }) {
   )
 }
 
+function useDragPan(ref: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    let dragging = false
+    let startX = 0
+    let startY = 0
+    let originLeft = 0
+    let originTop = 0
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      dragging = true
+      startX = e.clientX
+      startY = e.clientY
+      originLeft = el.scrollLeft
+      originTop = el.scrollTop
+      el.setPointerCapture(e.pointerId)
+      el.classList.add('cursor-grabbing')
+      el.classList.remove('cursor-grab')
+    }
+
+    const onMove = (e: PointerEvent) => {
+      if (!dragging) return
+      e.preventDefault()
+      el.scrollLeft = originLeft - (e.clientX - startX)
+      el.scrollTop = originTop - (e.clientY - startY)
+    }
+
+    const onUp = (e: PointerEvent) => {
+      if (!dragging) return
+      dragging = false
+      el.classList.remove('cursor-grabbing')
+      el.classList.add('cursor-grab')
+      try {
+        el.releasePointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
+    }
+
+    el.addEventListener('pointerdown', onDown)
+    el.addEventListener('pointermove', onMove)
+    el.addEventListener('pointerup', onUp)
+    el.addEventListener('pointercancel', onUp)
+
+    return () => {
+      el.removeEventListener('pointerdown', onDown)
+      el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerup', onUp)
+      el.removeEventListener('pointercancel', onUp)
+    }
+  }, [ref])
+}
+
 export function FamilyTreePage() {
   const [filter, setFilter] = useState<SideFilter | 'all'>('all')
+  const panRef = useRef<HTMLDivElement>(null)
+  useDragPan(panRef)
 
   const { data: guests = [], isLoading } = useQuery({
     queryKey: ['guests'],
@@ -305,13 +363,13 @@ export function FamilyTreePage() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" asChild>
-            <Link to="/guests" aria-label="Back to guests">
+          <Link to="/guests" aria-label="Back to guests">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div className="min-w-0">
           <h1 className="font-display text-lg font-semibold tracking-wide text-gold">Family tree</h1>
-          <p className="text-xs text-white/55">{total} people · pan to explore</p>
+          <p className="text-xs text-white/55">{total} people · drag to pan</p>
         </div>
       </div>
 
@@ -341,9 +399,13 @@ export function FamilyTreePage() {
       </div>
 
       <div
-        className="overflow-auto rounded-lg border border-gold/30 bg-[#0a0514]"
+        ref={panRef}
+        className="cursor-grab overflow-auto overscroll-contain rounded-lg border border-gold/30 bg-[#0a0514] active:cursor-grabbing"
         style={{
+          height: 'calc(100dvh - 11rem)',
           maxHeight: 'calc(100dvh - 11rem)',
+          touchAction: 'none',
+          WebkitOverflowScrolling: 'touch',
           backgroundImage:
             'radial-gradient(circle at 1px 1px, rgba(212,168,83,0.1) 1px, transparent 0)',
           backgroundSize: '16px 16px',
@@ -356,29 +418,36 @@ export function FamilyTreePage() {
         )}
 
         {!isLoading && guests.length > 0 && (
-          <svg
-            width={layout.width}
-            height={layout.height}
-            viewBox={`0 0 ${layout.width} ${layout.height}`}
-            className="block min-w-full"
-            role="img"
-            aria-label="Wedding family tree"
+          <div
+            style={{
+              width: Math.max(layout.width, 1),
+              height: Math.max(layout.height, 1),
+            }}
           >
-            {layout.edges.map((e, i) => (
-              <line
-                key={i}
-                x1={e.x1}
-                y1={e.y1}
-                x2={e.x2}
-                y2={e.y2}
-                className="stroke-gold/35"
-                strokeWidth={1}
-              />
-            ))}
-            {layout.boxes.map((box) => (
-              <TreeNode key={box.id} box={box} />
-            ))}
-          </svg>
+            <svg
+              width={layout.width}
+              height={layout.height}
+              viewBox={`0 0 ${layout.width} ${layout.height}`}
+              className="block select-none"
+              role="img"
+              aria-label="Wedding family tree"
+            >
+              {layout.edges.map((e, i) => (
+                <line
+                  key={i}
+                  x1={e.x1}
+                  y1={e.y1}
+                  x2={e.x2}
+                  y2={e.y2}
+                  className="stroke-gold/35"
+                  strokeWidth={1}
+                />
+              ))}
+              {layout.boxes.map((box) => (
+                <TreeNode key={box.id} box={box} />
+              ))}
+            </svg>
+          </div>
         )}
       </div>
     </div>
