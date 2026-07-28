@@ -41,3 +41,50 @@ export function sumPaymentsByStatus(payments: BudgetPayment[]) {
   }
   return { paid, pending, mayCome, paidByCategory }
 }
+
+export type CategoryPaymentRollup = {
+  paid: number
+  pending: number
+  mayCome: number
+  count: number
+  doneCount: number
+  pendingCount: number
+  mayComeCount: number
+}
+
+export function sumPaymentsByCategory(payments: BudgetPayment[]) {
+  const byCategory: Record<string, CategoryPaymentRollup> = {}
+  const ensure = (key: string): CategoryPaymentRollup => {
+    if (!byCategory[key]) {
+      byCategory[key] = {
+        paid: 0,
+        pending: 0,
+        mayCome: 0,
+        count: 0,
+        doneCount: 0,
+        pendingCount: 0,
+        mayComeCount: 0,
+      }
+    }
+    return byCategory[key]
+  }
+
+  for (const p of payments) {
+    const key = p.category_id ?? '__none__'
+    const row = ensure(key)
+    const amt = Number(p.amount) || 0
+    row.count += 1
+    if (p.status === 'done') {
+      row.paid += amt
+      row.doneCount += 1
+    } else if (p.status === 'pending') {
+      row.pending += amt
+      row.pendingCount += 1
+    } else {
+      row.mayCome += amt
+      row.mayComeCount += 1
+    }
+  }
+
+  return byCategory
+}

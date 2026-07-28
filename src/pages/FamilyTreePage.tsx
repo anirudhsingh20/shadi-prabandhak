@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import type { Guest, GuestRelation, GuestRelationType, GuestSide } from '@/lib/types'
@@ -345,10 +345,18 @@ function useDragPan(ref: RefObject<HTMLDivElement | null>) {
   }, [ref])
 }
 
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 1.75
+const ZOOM_STEP = 0.15
+
 export function FamilyTreePage() {
   const [filter, setFilter] = useState<SideFilter | 'all'>('all')
+  const [zoom, setZoom] = useState(1)
   const panRef = useRef<HTMLDivElement>(null)
   useDragPan(panRef)
+
+  const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100))
+  const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100))
 
   const { data: guests = [], isLoading } = useQuery({
     queryKey: ['guests'],
@@ -392,7 +400,7 @@ export function FamilyTreePage() {
         </Button>
         <div className="min-w-0">
           <h1 className="font-display text-lg font-semibold tracking-wide text-gold">Family tree</h1>
-          <p className="text-xs text-white/55">{total} people · drag to pan</p>
+          <p className="text-xs text-white/55">{total} people · drag to pan · +/- to zoom</p>
         </div>
       </div>
 
@@ -421,55 +429,93 @@ export function FamilyTreePage() {
         ))}
       </div>
 
-      <div
-        ref={panRef}
-        className="cursor-grab overflow-auto overscroll-contain rounded-lg border border-gold/30 bg-[#0a0514] active:cursor-grabbing"
-        style={{
-          height: 'calc(100dvh - 11rem)',
-          maxHeight: 'calc(100dvh - 11rem)',
-          touchAction: 'none',
-          WebkitOverflowScrolling: 'touch',
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, rgba(212,168,83,0.1) 1px, transparent 0)',
-          backgroundSize: '16px 16px',
-        }}
-      >
-        {isLoading && <p className="py-16 text-center text-sm text-white/50">Loading…</p>}
+      <div className="relative">
+        <div
+          ref={panRef}
+          className="cursor-grab overflow-auto overscroll-contain rounded-lg border border-gold/30 bg-[#0a0514] active:cursor-grabbing"
+          style={{
+            height: 'calc(100dvh - 11rem)',
+            maxHeight: 'calc(100dvh - 11rem)',
+            touchAction: 'none',
+            WebkitOverflowScrolling: 'touch',
+            backgroundImage:
+              'radial-gradient(circle at 1px 1px, rgba(212,168,83,0.1) 1px, transparent 0)',
+            backgroundSize: '16px 16px',
+          }}
+        >
+          {isLoading && <p className="py-16 text-center text-sm text-white/50">Loading…</p>}
 
-        {!isLoading && guests.length === 0 && (
-          <p className="py-16 text-center text-sm text-white/50">No guests yet.</p>
-        )}
+          {!isLoading && guests.length === 0 && (
+            <p className="py-16 text-center text-sm text-white/50">No guests yet.</p>
+          )}
+
+          {!isLoading && guests.length > 0 && (
+            <div
+              style={{
+                width: Math.max(layout.width * zoom, 1),
+                height: Math.max(layout.height * zoom, 1),
+              }}
+            >
+              <svg
+                width={layout.width * zoom}
+                height={layout.height * zoom}
+                viewBox={`0 0 ${layout.width} ${layout.height}`}
+                className="block select-none"
+                role="img"
+                aria-label="Wedding family tree"
+              >
+                {layout.edges.map((e, i) => (
+                  <line
+                    key={i}
+                    x1={e.x1}
+                    y1={e.y1}
+                    x2={e.x2}
+                    y2={e.y2}
+                    className="stroke-gold/35"
+                    strokeWidth={1}
+                  />
+                ))}
+                {layout.boxes.map((box) => (
+                  <TreeNode key={box.id} box={box} />
+                ))}
+              </svg>
+            </div>
+          )}
+        </div>
 
         {!isLoading && guests.length > 0 && (
-          <div
-            style={{
-              width: Math.max(layout.width, 1),
-              height: Math.max(layout.height, 1),
-            }}
-          >
-            <svg
-              width={layout.width}
-              height={layout.height}
-              viewBox={`0 0 ${layout.width} ${layout.height}`}
-              className="block select-none"
-              role="img"
-              aria-label="Wedding family tree"
+          <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-md border border-gold/35 bg-[#10081c]/95 p-1 shadow-lg backdrop-blur-sm">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-white/80 hover:bg-white/10 hover:text-gold"
+              onClick={zoomOut}
+              disabled={zoom <= ZOOM_MIN}
+              aria-label="Zoom out"
             >
-              {layout.edges.map((e, i) => (
-                <line
-                  key={i}
-                  x1={e.x1}
-                  y1={e.y1}
-                  x2={e.x2}
-                  y2={e.y2}
-                  className="stroke-gold/35"
-                  strokeWidth={1}
-                />
-              ))}
-              {layout.boxes.map((box) => (
-                <TreeNode key={box.id} box={box} />
-              ))}
-            </svg>
+              <Minus className="h-4 w-4" />
+            </Button>
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              className="min-w-[2.75rem] px-1 text-center text-[11px] font-medium tabular-nums text-white/60 hover:text-gold"
+              aria-label="Reset zoom"
+              title="Reset zoom"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-white/80 hover:bg-white/10 hover:text-gold"
+              onClick={zoomIn}
+              disabled={zoom >= ZOOM_MAX}
+              aria-label="Zoom in"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>
