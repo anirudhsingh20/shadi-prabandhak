@@ -82,6 +82,7 @@ create table if not exists budget_payments (
   status text not null check (status in ('done', 'pending', 'may_come')),
   due_date date,
   notes text,
+  image_url text,
   created_at timestamptz not null default now()
 );
 
@@ -146,3 +147,24 @@ create policy "Authenticated full access vendors" on vendors for all using (auth
 create policy "Authenticated full access checklist" on checklist_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access decisions" on decisions for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access idea_boards" on idea_boards for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- Payment receipt images
+insert into storage.buckets (id, name, public)
+values ('payment-receipts', 'payment-receipts', true)
+on conflict (id) do nothing;
+
+create policy "Authenticated read payment receipts" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'payment-receipts');
+
+create policy "Authenticated upload payment receipts" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'payment-receipts');
+
+create policy "Authenticated update payment receipts" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'payment-receipts');
+
+create policy "Authenticated delete payment receipts" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'payment-receipts');

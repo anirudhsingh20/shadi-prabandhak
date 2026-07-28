@@ -39,7 +39,10 @@ export const totalBudgetSchema = z.object({
 
 export const budgetPaymentSchema = z.object({
   title: z.string().min(2, 'Title is required'),
-  amount: z.coerce.number().min(0, 'Must be 0 or more'),
+  amount: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : v),
+    z.number({ required_error: 'Amount is required', invalid_type_error: 'Enter an amount' }).min(0, 'Must be 0 or more'),
+  ),
   status: z.enum(['done', 'pending', 'may_come']),
   category_id: z.string().uuid().optional().or(z.literal('')),
   due_date: z.string().optional(),

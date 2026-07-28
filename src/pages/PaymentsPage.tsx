@@ -1,11 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, Clock, HelpCircle, Plus, Trash2, X } from 'lucide-react'
+import { ArrowUpDown, Layers, Plus, Search, Trash2, X } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { PageHeader } from '@/components/PageHeader'
-import { PaymentForm } from '@/components/PaymentForm'
+import { PaymentForm, type PaymentImageChange } from '@/components/PaymentForm'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -15,13 +14,25 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { PAYMENT_STATUS_LABEL, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
+import { deletePaymentImage, uploadPaymentImage } from '@/lib/payment-image'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BudgetPaymentInput } from '@/lib/validations'
 import type { BudgetCategory, BudgetPayment, BudgetPaymentStatus } from '@/lib/types'
 
 type StatusFilter = 'all' | BudgetPaymentStatus
+type CategoryFilter = 'all' | 'none' | string
+type SortKey = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'title_asc'
+type GroupBy = 'month' | 'category' | 'none'
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -29,6 +40,38 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'done', label: 'Paid' },
   { value: 'may_come', label: 'May come' },
 ]
+
+const SORT_OPTIONS: { value: SortKey; label: string; short: string }[] = [
+  { value: 'date_desc', label: 'Newest first', short: 'Newest' },
+  { value: 'date_asc', label: 'Oldest first', short: 'Oldest' },
+  { value: 'amount_desc', label: 'Amount: high → low', short: 'Amt ↓' },
+  { value: 'amount_asc', label: 'Amount: low → high', short: 'Amt ↑' },
+  { value: 'title_asc', label: 'Name: A → Z', short: 'A–Z' },
+]
+
+const GROUP_OPTIONS: { value: GroupBy; label: string; short: string }[] = [
+  { value: 'month', label: 'By month', short: 'Month' },
+  { value: 'category', label: 'By category', short: 'Category' },
+  { value: 'none', label: 'No grouping', short: 'Flat' },
+]
+
+function paymentDate(p: BudgetPayment) {
+  return p.due_date || p.created_at.slice(0, 10)
+}
+
+function sortPayments(list: BudgetPayment[], sort: SortKey) {
+  return [...list].sort((a, b) => {
+    if (sort === 'amount_desc') return Number(b.amount) - Number(a.amount)
+    if (sort === 'amount_asc') return Number(a.amount) - Number(b.amount)
+    if (sort === 'title_asc') return a.title.localeCompare(b.title)
+    const da = paymentDate(a)
+    const db = paymentDate(b)
+    if (da !== db) return sort === 'date_asc' ? da.localeCompare(db) : db.localeCompare(da)
+    return sort === 'date_asc'
+      ? a.created_at.localeCompare(b.created_at)
+      : b.created_at.localeCompare(a.created_at)
+  })
+}
 
 const STATUS_TONE: Record<
   BudgetPaymentStatus,
@@ -142,15 +185,23 @@ function ExpenseRow({
       onClick={onOpen}
       className="flex w-full items-center gap-3 px-1 py-2.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.06]"
     >
-      <span
-        className={cn(
-          'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tracking-wide',
-          tone.avatar,
-        )}
-        aria-hidden
-      >
-        {initials(payment.title)}
-      </span>
+      {payment.image_url ? (
+        <img
+          src={payment.image_url}
+          alt=""
+          className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"
+        />
+      ) : (
+        <span
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tracking-wide',
+            tone.avatar,
+          )}
+          aria-hidden
+        >
+          {initials(payment.title)}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-medium text-white/90">{payment.title}</span>
         <span className="mt-0.5 block truncate text-xs text-white/50">
@@ -176,6 +227,10 @@ export function PaymentsPage() {
   const [editPay, setEditPay] = useState<BudgetPayment | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all')
+  const [sortKey, setSortKey] = useState<SortKey>('date_desc')
+  const [groupBy, setGroupBy] = useState<GroupBy>('month')
+  const [search, setSearch] = useState('')
 
   const { data: categories = [] } = useQuery({
     queryKey: ['budget'],
@@ -213,29 +268,80 @@ export function PaymentsPage() {
   const totalAll = totals.paid + outstanding
 
   const filtered = useMemo(() => {
-    if (statusFilter === 'all') return payments
-    return payments.filter((p) => p.status === statusFilter)
-  }, [payments, statusFilter])
+    const q = search.trim().toLowerCase()
+    return payments.filter((p) => {
+      if (statusFilter !== 'all' && p.status !== statusFilter) return false
+      if (categoryFilter === 'none') {
+        if (p.category_id) return false
+      } else if (categoryFilter !== 'all' && p.category_id !== categoryFilter) {
+        return false
+      }
+      if (q) {
+        const hay = `${p.title} ${p.notes ?? ''} ${p.category_id ? categoryMap[p.category_id] ?? '' : ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [payments, statusFilter, categoryFilter, search, categoryMap])
+
+  const statusCounts = useMemo(() => {
+    const base =
+      categoryFilter === 'all'
+        ? payments
+        : categoryFilter === 'none'
+          ? payments.filter((p) => !p.category_id)
+          : payments.filter((p) => p.category_id === categoryFilter)
+    return {
+      all: base.length,
+      done: base.filter((p) => p.status === 'done').length,
+      pending: base.filter((p) => p.status === 'pending').length,
+      may_come: base.filter((p) => p.status === 'may_come').length,
+    }
+  }, [payments, categoryFilter])
+
+  const filtersActive =
+    statusFilter !== 'all' || categoryFilter !== 'all' || search.trim().length > 0
 
   const grouped = useMemo(() => {
+    const sorted = sortPayments(filtered, sortKey)
+
+    if (groupBy === 'none') {
+      return sorted.length ? [{ label: 'All expenses', items: sorted }] : []
+    }
+
     const order: string[] = []
     const map = new Map<string, BudgetPayment[]>()
-    const sorted = [...filtered].sort((a, b) => {
-      const da = a.due_date || a.created_at.slice(0, 10)
-      const db = b.due_date || b.created_at.slice(0, 10)
-      if (da !== db) return db.localeCompare(da)
-      return b.created_at.localeCompare(a.created_at)
-    })
+
     for (const p of sorted) {
-      const key = monthKey(p.due_date, p.created_at)
+      const key =
+        groupBy === 'category'
+          ? p.category_id
+            ? categoryMap[p.category_id] ?? 'Unknown'
+            : 'Uncategorized'
+          : monthKey(p.due_date, p.created_at)
       if (!map.has(key)) {
         map.set(key, [])
         order.push(key)
       }
       map.get(key)!.push(p)
     }
+
+    if (groupBy === 'category') {
+      order.sort((a, b) => {
+        if (a === 'Uncategorized') return 1
+        if (b === 'Uncategorized') return -1
+        return a.localeCompare(b)
+      })
+    }
+
     return order.map((label) => ({ label, items: map.get(label)! }))
-  }, [filtered])
+  }, [filtered, sortKey, groupBy, categoryMap])
+
+  const clearFilters = () => {
+    setStatusFilter('all')
+    setCategoryFilter('all')
+    setSearch('')
+  }
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['budget'] })
@@ -247,6 +353,7 @@ export function PaymentsPage() {
       const payment = payments.find((p) => p.id === id)
       const { error } = await supabase.from('budget_payments').delete().eq('id', id)
       if (error) throw error
+      if (payment?.image_url) await deletePaymentImage(payment.image_url)
       if (payment?.category_id) await syncCategorySpent(WEDDING_ID, [payment.category_id])
     },
     onSuccess: () => {
@@ -258,9 +365,24 @@ export function PaymentsPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const savePayment = async (values: BudgetPaymentInput, id?: string) => {
+  const savePayment = async (
+    values: BudgetPaymentInput,
+    image: PaymentImageChange,
+    id?: string,
+  ) => {
     const prev = id ? payments.find((p) => p.id === id) : null
     const categoryId = values.category_id || null
+
+    let imageUrl = prev?.image_url ?? null
+    if (image.file) {
+      const uploaded = await uploadPaymentImage(image.file)
+      if (prev?.image_url) await deletePaymentImage(prev.image_url)
+      imageUrl = uploaded
+    } else if (image.remove) {
+      if (prev?.image_url) await deletePaymentImage(prev.image_url)
+      imageUrl = null
+    }
+
     const payload = {
       title: values.title,
       amount: Number(values.amount),
@@ -268,12 +390,19 @@ export function PaymentsPage() {
       category_id: categoryId,
       due_date: values.due_date || null,
       notes: values.notes || null,
+      image_url: imageUrl,
       wedding_id: WEDDING_ID,
     }
     const { error } = id
       ? await supabase.from('budget_payments').update(payload).eq('id', id)
       : await supabase.from('budget_payments').insert(payload)
-    if (error) throw new Error(error.message)
+    if (error) {
+      // Don't orphan a newly uploaded image if the row write fails
+      if (image.file && imageUrl && imageUrl !== prev?.image_url) {
+        await deletePaymentImage(imageUrl)
+      }
+      throw new Error(error.message)
+    }
 
     const toSync = [categoryId, prev?.category_id].filter(Boolean) as string[]
     if (toSync.length) await syncCategorySpent(WEDDING_ID, toSync)
@@ -295,55 +424,43 @@ export function PaymentsPage() {
         }
       />
 
-      {/* Splitwise-style balance banner */}
-      <div className="overflow-hidden rounded-xl border border-gold/30 bg-gradient-to-b from-white/[0.06] to-transparent">
-        <div className="px-4 pb-3 pt-4 text-center">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/50">Outstanding</p>
-          <p
-            className={cn(
-              'mt-1 font-display text-3xl font-semibold tabular-nums',
-              outstanding > 0 ? 'text-amber-300' : 'text-emerald-400',
-            )}
-          >
-            {formatCurrency(outstanding)}
-          </p>
-          <p className="mt-1 text-xs text-white/45">
-            {outstanding > 0
-              ? `${formatCurrencyCompact(totals.pending)} pending · ${formatCurrencyCompact(totals.mayCome)} may come`
-              : 'All caught up'}
-          </p>
-        </div>
-        <div className="grid grid-cols-3 divide-x divide-gold/20 border-t border-gold/25">
-          <div className="px-2 py-2.5 text-center">
-            <div className="mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15">
-              <Check className="h-3.5 w-3.5 text-emerald-400" />
-            </div>
-            <p className="text-[10px] uppercase tracking-wide text-white/45">Paid</p>
-            <p className="mt-0.5 font-display text-sm font-semibold tabular-nums text-emerald-400">
-              {formatCurrencyCompact(totals.paid)}
+      {/* Compact balance summary */}
+      <div className="overflow-hidden rounded-lg border border-gold/30 bg-white/[0.03]">
+        <div className="flex items-end justify-between gap-3 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wide text-white/45">Outstanding</p>
+            <p
+              className={cn(
+                'font-display text-xl font-semibold tabular-nums leading-tight',
+                outstanding > 0 ? 'text-amber-300' : 'text-emerald-400',
+              )}
+            >
+              {formatCurrencyCompact(outstanding)}
             </p>
           </div>
-          <div className="px-2 py-2.5 text-center">
-            <div className="mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15">
-              <Clock className="h-3.5 w-3.5 text-amber-300" />
+          <div className="flex shrink-0 gap-3 text-right">
+            <div>
+              <p className="text-[9px] uppercase tracking-wide text-white/40">Paid</p>
+              <p className="font-display text-xs font-semibold tabular-nums text-emerald-400">
+                {formatCurrencyCompact(totals.paid)}
+              </p>
             </div>
-            <p className="text-[10px] uppercase tracking-wide text-white/45">Pending</p>
-            <p className="mt-0.5 font-display text-sm font-semibold tabular-nums text-amber-300">
-              {formatCurrencyCompact(totals.pending)}
-            </p>
-          </div>
-          <div className="px-2 py-2.5 text-center">
-            <div className="mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/10">
-              <HelpCircle className="h-3.5 w-3.5 text-white/55" />
+            <div>
+              <p className="text-[9px] uppercase tracking-wide text-white/40">Pending</p>
+              <p className="font-display text-xs font-semibold tabular-nums text-amber-300">
+                {formatCurrencyCompact(totals.pending)}
+              </p>
             </div>
-            <p className="text-[10px] uppercase tracking-wide text-white/45">May come</p>
-            <p className="mt-0.5 font-display text-sm font-semibold tabular-nums text-white/65">
-              {formatCurrencyCompact(totals.mayCome)}
-            </p>
+            <div>
+              <p className="text-[9px] uppercase tracking-wide text-white/40">May come</p>
+              <p className="font-display text-xs font-semibold tabular-nums text-white/65">
+                {formatCurrencyCompact(totals.mayCome)}
+              </p>
+            </div>
           </div>
         </div>
         {totalAll > 0 && (
-          <div className="h-1.5 overflow-hidden bg-white/5">
+          <div className="h-1 overflow-hidden bg-white/5">
             <div
               className="h-full bg-emerald-500/70 transition-all"
               style={{ width: `${Math.min(100, (totals.paid / totalAll) * 100)}%` }}
@@ -352,50 +469,137 @@ export function PaymentsPage() {
         )}
       </div>
 
-      <p className="text-center text-xs text-white/45">
-        Categories & bank on{' '}
-        <Link to="/budget" className="text-gold underline-offset-2 hover:underline">
-          Budget
-        </Link>
-      </p>
+      {/* Status + tools — compact filter fonts only */}
+      <div className="space-y-1.5">
+        <div className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FILTERS.map((f) => {
+            const active = statusFilter === f.value
+            const count = statusCounts[f.value]
+            return (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setStatusFilter(f.value)}
+                className={cn(
+                  'shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
+                  active
+                    ? 'border-transparent bg-gold text-gold-foreground'
+                    : 'border-gold/25 text-white/65 hover:bg-white/5',
+                )}
+              >
+                {f.label}
+                <span className={cn('ml-1 tabular-nums', active ? 'opacity-80' : 'text-white/40')}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
 
-      {/* Filter chips */}
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {FILTERS.map((f) => {
-          const active = statusFilter === f.value
-          const count =
-            f.value === 'all'
-              ? payments.length
-              : payments.filter((p) => p.status === f.value).length
-          return (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-white/40" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="h-8 border-gold/25 bg-white/[0.03] pl-7 pr-7 text-[11px]"
+          />
+          {search && (
             <button
-              key={f.value}
               type="button"
-              onClick={() => setStatusFilter(f.value)}
-              className={cn(
-                'shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                active
-                  ? 'border-transparent bg-gold text-gold-foreground'
-                  : 'border-gold/25 text-white/65 hover:bg-white/5',
-              )}
+              onClick={() => setSearch('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-white/45 hover:text-gold"
+              aria-label="Clear search"
             >
-              {f.label}
-              <span className={cn('ml-1 tabular-nums', active ? 'opacity-80' : 'text-white/40')}>
-                {count}
-              </span>
+              <X className="h-3 w-3" />
             </button>
-          )
-        })}
+          )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-8 min-w-0 flex-1 gap-1 px-1.5 text-[11px]" aria-label="Filter by category">
+              <SelectValue placeholder="Category">
+                {categoryFilter === 'all'
+                  ? 'Category'
+                  : categoryFilter === 'none'
+                    ? 'None'
+                    : categoryMap[categoryFilter] ?? 'Category'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+              <SelectItem value="none">Uncategorized</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="h-8 min-w-0 flex-1 gap-1 px-1.5 text-[11px]" aria-label="Sort expenses">
+              <ArrowUpDown className="h-3 w-3 shrink-0 opacity-60" />
+              <SelectValue placeholder="Sort">
+                {SORT_OPTIONS.find((o) => o.value === sortKey)?.short ?? 'Sort'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+            <SelectTrigger className="h-8 min-w-0 flex-1 gap-1 px-1.5 text-[11px]" aria-label="Group expenses">
+              <Layers className="h-3 w-3 shrink-0 opacity-60" />
+              <SelectValue placeholder="Group">
+                {GROUP_OPTIONS.find((o) => o.value === groupBy)?.short ?? 'Group'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {GROUP_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {filtersActive && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 px-2 text-[11px]"
+              onClick={clearFilters}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading && <p className="py-10 text-center text-sm text-white/50">Loading…</p>}
 
       {!isLoading && filtered.length === 0 && (
         <div className="py-14 text-center">
-          <p className="text-sm text-white/55">No payments here yet.</p>
-          <Button size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Add payment
-          </Button>
+          <p className="text-sm text-white/55">
+            {payments.length === 0 ? 'No payments here yet.' : 'No payments match these filters.'}
+          </p>
+          {payments.length === 0 ? (
+            <Button size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Add payment
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="mt-3" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          )}
         </div>
       )}
 
@@ -403,9 +607,12 @@ export function PaymentsPage() {
       <div className="space-y-4">
         {grouped.map((group) => (
           <section key={group.label}>
-            <h2 className="sticky top-0 z-[1] -mx-1 mb-0.5 bg-[#0d0718]/90 px-1 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-white/40 backdrop-blur-sm">
-              {group.label}
-            </h2>
+            {groupBy !== 'none' && (
+              <h2 className="sticky top-0 z-[1] -mx-1 mb-0.5 bg-[#0d0718]/90 px-1 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-white/40 backdrop-blur-sm">
+                {group.label}
+                <span className="ml-1.5 tabular-nums text-white/25">{group.items.length}</span>
+              </h2>
+            )}
             <div className="divide-y divide-white/[0.06]">
               {group.items.map((p) => (
                 <ExpenseRow
@@ -423,21 +630,28 @@ export function PaymentsPage() {
       <PaymentDrawerShell
         open={createOpen}
         onOpenChange={setCreateOpen}
-        title="Add payment"
+        title="Add an expense"
         description="Log a new wedding payment."
       >
         <PaymentForm
           key={createOpen ? 'create-open' : 'create-closed'}
           categories={categories}
-          submitLabel="Add payment"
-          onSubmit={(v) => savePayment(v)}
+          submitLabel="Save"
+          onSubmit={async (v, image) => {
+            try {
+              await savePayment(v, image)
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : 'Failed to save')
+              throw e
+            }
+          }}
         />
       </PaymentDrawerShell>
 
       <PaymentDrawerShell
         open={!!editPay}
         onOpenChange={(o) => !o && setEditPay(null)}
-        title="Edit payment"
+        title="Edit expense"
         description="Update or delete this payment."
         footer={
           editPay ? (
@@ -447,7 +661,7 @@ export function PaymentsPage() {
               className="border-destructive/40 text-destructive hover:bg-destructive/10"
               onClick={() => setDeleteId(editPay.id)}
             >
-              <Trash2 className="mr-1.5 h-4 w-4" /> Delete payment
+              <Trash2 className="mr-1.5 h-4 w-4" /> Delete expense
             </Button>
           ) : null
         }
@@ -456,7 +670,8 @@ export function PaymentsPage() {
           <PaymentForm
             key={editPay.id}
             categories={categories}
-            submitLabel="Save changes"
+            submitLabel="Save"
+            existingImageUrl={editPay.image_url}
             defaultValues={{
               title: editPay.title,
               amount: Number(editPay.amount),
@@ -465,7 +680,14 @@ export function PaymentsPage() {
               due_date: editPay.due_date ?? '',
               notes: editPay.notes ?? '',
             }}
-            onSubmit={(v) => savePayment(v, editPay.id)}
+            onSubmit={async (v, image) => {
+              try {
+                await savePayment(v, image, editPay.id)
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Failed to save')
+                throw e
+              }
+            }}
           />
         )}
       </PaymentDrawerShell>
