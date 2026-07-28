@@ -8,7 +8,7 @@ const links = [
   { to: '/family-tree', title: 'Family tree', desc: 'Groom, bride & mutual by relation' },
   { to: '/guests-classic', title: 'Guests classic', desc: 'Original RSVP guest list' },
   { to: '/budget', title: 'Budget', desc: 'Bank balance, categories & charts' },
-  { to: '/payments', title: 'Payments', desc: 'Done, pending & may come' },
+  { to: '/payments', title: 'Payments', desc: 'Splitwise-style paid, pending & may come' },
   { to: '/vendors', title: 'Vendors', desc: 'Contacts and booking status' },
   { to: '/checklist', title: 'Checklist', desc: 'Timeline until November' },
   { to: '/ideas', title: 'Ideas', desc: 'tldraw whiteboard for wedding ideas' },

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { GitFork, Minus, MoreVertical, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { ChevronDown, GitFork, Minus, MoreVertical, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -478,6 +478,12 @@ function GuestList({
   onEdit: (g: Guest) => void
   onDelete: (id: string) => void
 }) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
+  const toggleRelation = (id: string) => {
+    setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
   const sections = useMemo(() => {
     const sidesPresent = SIDE_SECTIONS.filter((side) => guests.some((g) => g.side === side))
 
@@ -539,21 +545,41 @@ function GuestList({
           </header>
 
           <div className="divide-y divide-gold/25">
-            {section.relations.map((rel) => (
-              <div key={rel.key}>
-                <div className="flex items-center justify-between gap-2 border-b border-gold/20 bg-white/[0.03] px-3 py-1.5">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-white/55">
-                    {rel.label}
-                  </p>
-                  <span className="text-[11px] tabular-nums text-white/40">{rel.total}</span>
+            {section.relations.map((rel) => {
+              const collapseId = `${section.side}:${rel.key}`
+              const isCollapsed = !!collapsed[collapseId]
+              return (
+                <div key={rel.key}>
+                  <button
+                    type="button"
+                    onClick={() => toggleRelation(collapseId)}
+                    aria-expanded={!isCollapsed}
+                    className="flex w-full items-center justify-between gap-2 border-b border-gold/20 bg-white/[0.03] px-3 py-1.5 text-left transition-colors hover:bg-white/[0.06]"
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <ChevronDown
+                        className={cn(
+                          'h-3.5 w-3.5 shrink-0 text-white/40 transition-transform',
+                          isCollapsed && '-rotate-90',
+                        )}
+                        aria-hidden
+                      />
+                      <span className="truncate text-[11px] font-medium uppercase tracking-wide text-white/55">
+                        {rel.label}
+                      </span>
+                    </span>
+                    <span className="text-[11px] tabular-nums text-white/40">{rel.total}</span>
+                  </button>
+                  {!isCollapsed && (
+                    <div>
+                      {rel.guests.map((g) => (
+                        <GuestRow key={g.id} guest={g} onEdit={onEdit} onDelete={onDelete} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  {rel.guests.map((g) => (
-                    <GuestRow key={g.id} guest={g} onEdit={onEdit} onDelete={onDelete} />
-                  ))}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       ))}
