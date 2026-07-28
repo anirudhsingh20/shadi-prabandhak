@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { loginSchema, type LoginInput } from '@/lib/validations'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -18,6 +20,7 @@ import { Input } from '@/components/ui/input'
 
 export function LoginPage() {
   const { session, signInWithPassword } = useAuth()
+  const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -36,9 +39,6 @@ export function LoginPage() {
       <Card className="wedding-surface w-full max-w-[430px] border-gold/45 shadow-[0_0_48px_rgba(212,168,83,0.16)]">
         <CardHeader>
           <CardTitle className="font-display text-3xl tracking-wide text-gold drop-shadow-sm">Shadi Prabandhak</CardTitle>
-          <CardDescription className="text-base text-white/85">
-            Sign in with your email and password
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -63,7 +63,25 @@ export function LoginPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" autoComplete="current-password" {...field} />
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          autoComplete="current-password"
+                          className="pr-11"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-11 w-11 text-white/70 hover:text-gold"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff /> : <Eye />}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

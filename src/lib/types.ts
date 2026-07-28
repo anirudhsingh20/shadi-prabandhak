@@ -1,6 +1,7 @@
 export type RsvpStatus = 'confirmed' | 'pending' | 'declined'
 export type GuestSide = 'bride' | 'groom' | 'common'
-export type GuestRelation = 'father' | 'mother' | 'friends' | 'other'
+/** Relation key stored on guests — catalog managed in guest_relations */
+export type GuestRelation = string
 export type VendorStatus = 'booked' | 'shortlisted'
 export type ChecklistStatus = 'done' | 'next' | 'later'
 export type BudgetPaymentStatus = 'done' | 'pending' | 'may_come'
@@ -37,6 +38,14 @@ export interface Guest {
   notes: string | null
   created_at: string
   updated_at: string
+}
+
+export interface GuestRelationType {
+  id: string
+  wedding_id: string
+  key: string
+  label: string
+  sort_order: number
 }
 
 export interface BudgetCategory {
@@ -102,6 +111,11 @@ export interface Database {
       weddings: { Row: Wedding; Insert: Omit<Wedding, 'created_at'> & { created_at?: string }; Update: Partial<Wedding> }
       events: { Row: Event; Insert: Omit<Event, 'id'> & { id?: string }; Update: Partial<Event> }
       guests: { Row: Guest; Insert: Omit<Guest, 'id'> & { id?: string }; Update: Partial<Guest> }
+      guest_relations: {
+        Row: GuestRelationType
+        Insert: Omit<GuestRelationType, 'id'> & { id?: string }
+        Update: Partial<GuestRelationType>
+      }
       budget_categories: { Row: BudgetCategory; Insert: Omit<BudgetCategory, 'id'> & { id?: string }; Update: Partial<BudgetCategory> }
       budget_payments: { Row: BudgetPayment; Insert: Omit<BudgetPayment, 'id' | 'created_at'> & { id?: string; created_at?: string }; Update: Partial<BudgetPayment> }
       vendors: { Row: Vendor; Insert: Omit<Vendor, 'id'> & { id?: string }; Update: Partial<Vendor> }

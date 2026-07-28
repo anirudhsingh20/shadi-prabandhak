@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
-import type { Guest, GuestRelation, GuestSide } from '@/lib/types'
+import type { Guest, GuestRelation, GuestRelationType, GuestSide } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 type SideFilter = GuestSide
@@ -15,15 +15,6 @@ const SIDE_LABEL: Record<SideFilter, string> = {
   groom: 'Groom Side',
   bride: 'Bride Side',
   common: 'Mutual',
-}
-
-const RELATION_ORDER: GuestRelation[] = ['father', 'mother', 'friends', 'other']
-
-const RELATION_LABEL: Record<GuestRelation, string> = {
-  father: 'Father',
-  mother: 'Mother',
-  friends: 'Friends',
-  other: 'Other',
 }
 
 function pax(g: Pick<Guest, 'headcount'>) {
@@ -38,21 +29,39 @@ type TreeGuest = { id: string; name: string; count: number }
 type TreeRelation = { key: GuestRelation; label: string; total: number; guests: TreeGuest[] }
 type TreeSide = { key: SideFilter; label: string; total: number; relations: TreeRelation[] }
 
-function buildTree(guests: Guest[], sides: SideFilter[]): TreeSide[] {
+function buildTree(
+  guests: Guest[],
+  sides: SideFilter[],
+  relationCatalog: { key: string; label: string }[],
+): TreeSide[] {
   return sides.map((side) => {
     const sideGuests = guests.filter((g) => g.side === side)
-    const relations = RELATION_ORDER.map((relation) => {
-      const list = sideGuests
-        .filter((g) => g.relation === relation)
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((g) => ({ id: g.id, name: g.name, count: pax(g) }))
-      return {
-        key: relation,
-        label: RELATION_LABEL[relation],
-        total: list.reduce((n, g) => n + g.count, 0),
-        guests: list,
-      }
-    })
+    const known = new Set(relationCatalog.map((r) => r.key))
+    const orphans = [
+      ...new Set(
+        sideGuests
+          .map((g) => g.relation)
+          .filter((k): k is string => !!k && !known.has(k)),
+      ),
+    ].map((key) => ({ key, label: key.replace(/_/g, ' ') }))
+
+    const relationOrder = [...relationCatalog, ...orphans]
+
+    const relations = relationOrder
+      .map((relation) => {
+        const list = sideGuests
+          .filter((g) => g.relation === relation.key)
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((g) => ({ id: g.id, name: g.name, count: pax(g) }))
+        return {
+          key: relation.key,
+          label: relation.label,
+          total: list.reduce((n, g) => n + g.count, 0),
+          guests: list,
+        }
+      })
+      .filter((r) => r.guests.length > 0)
+
     return {
       key: side,
       label: SIDE_LABEL[side],
@@ -350,10 +359,24 @@ export function FamilyTreePage() {
     },
   })
 
+  const { data: relationCatalog = [] } = useQuery({
+    queryKey: ['guest_relations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('guest_relations')
+        .select('*')
+        .eq('wedding_id', WEDDING_ID)
+        .order('sort_order')
+      if (error) throw error
+      return data as GuestRelationType[]
+    },
+  })
+
   const sides = useMemo(() => {
     const keys = filter === 'all' ? SIDE_ORDER : [filter]
-    return buildTree(guests, keys)
-  }, [guests, filter])
+    const catalog = relationCatalog.map((r) => ({ key: r.key, label: r.label }))
+    return buildTree(guests, keys, catalog)
+  }, [guests, filter, relationCatalog])
 
   const layout = useMemo(() => layoutTree(sides), [sides])
 

@@ -116,7 +116,6 @@ export function EventsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Ceremony roadmap"
-        description="Mehendi through Reception"
         action={
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add</Button></DialogTrigger>

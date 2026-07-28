@@ -2,10 +2,16 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { GitFork, Minus, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { GitFork, Minus, MoreVertical, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Drawer,
   DrawerContent,
@@ -19,7 +25,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
-import type { Event, Guest, GuestRelation, GuestSide } from '@/lib/types'
+import type { Event, Guest, GuestRelation, GuestRelationType, GuestSide } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 type SideTab = 'all' | GuestSide
@@ -29,20 +35,6 @@ const SIDE_CHIPS: { value: GuestSide; label: string }[] = [
   { value: 'groom', label: 'Groom' },
   { value: 'common', label: 'Mutual' },
 ]
-
-const RELATION_CHIPS: { value: GuestRelation; label: string }[] = [
-  { value: 'father', label: 'Father' },
-  { value: 'mother', label: 'Mother' },
-  { value: 'friends', label: 'Friends' },
-  { value: 'other', label: 'Other' },
-]
-
-const RELATION_LABEL: Record<GuestRelation, string> = {
-  father: 'Father',
-  mother: 'Mother',
-  friends: 'Friends',
-  other: 'Other',
-}
 
 const SIDE_LABEL: Record<GuestSide, string> = {
   bride: 'Bride',
@@ -59,13 +51,17 @@ const FILTER_TABS: { value: SideTab; label: string }[] = [
 
 const SIDE_SECTIONS: GuestSide[] = ['bride', 'groom', 'common']
 
-const RELATION_SECTIONS: { key: GuestRelation | 'none'; label: string }[] = [
-  { key: 'father', label: 'Father' },
-  { key: 'mother', label: 'Mother' },
-  { key: 'friends', label: 'Friends' },
-  { key: 'other', label: 'Other' },
-  { key: 'none', label: 'Unspecified' },
-]
+function slugifyRelation(label: string) {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+}
+
+function relationLabel(key: string, relations: GuestRelationType[]) {
+  return relations.find((r) => r.key === key)?.label ?? key.replace(/_/g, ' ')
+}
 
 function parseSelectedEvents(stored: string | null | undefined, eventNames: string[]): string[] {
   if (!stored?.trim()) return []
@@ -157,22 +153,26 @@ function GuestDrawerForm({
   title,
   description,
   eventNames,
+  relations,
   existingGuests,
   excludeGuestId,
   initial,
   submitLabel,
   onSubmit,
+  onManageRelations,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   description: string
   eventNames: string[]
+  relations: GuestRelationType[]
   existingGuests: Guest[]
   excludeGuestId?: string
   initial: GuestDraft
   submitLabel: string
   onSubmit: (draft: GuestDraftValid) => Promise<void>
+  onManageRelations: () => void
 }) {
   const [draft, setDraft] = useState(initial)
   const [saving, setSaving] = useState(false)
@@ -320,7 +320,7 @@ function GuestDrawerForm({
                       {SIDE_LABEL[g.side]}
                       {' · '}
                       {g.headcount} {g.headcount === 1 ? 'person' : 'people'}
-                      {g.relation ? ` · ${RELATION_LABEL[g.relation]}` : ''}
+                      {g.relation ? ` · ${relationLabel(g.relation, relations)}` : ''}
                     </span>
                   </li>
                 ))}
@@ -345,19 +345,37 @@ function GuestDrawerForm({
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs text-white/75">
-              Relation <span className="text-gold">*</span>
-            </Label>
-            <div className="flex flex-wrap gap-1">
-              {RELATION_CHIPS.map((chip) => (
-                <Chip
-                  key={chip.value}
-                  label={chip.label}
-                  active={draft.relation === chip.value}
-                  onClick={() => setDraft((d) => ({ ...d, relation: chip.value }))}
-                />
-              ))}
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs text-white/75">
+                Relation <span className="text-gold">*</span>
+              </Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-gold hover:text-gold"
+                onClick={onManageRelations}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add relation
+              </Button>
             </div>
+            {relations.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No relations yet. Tap Add relation to create one.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {relations.map((rel) => (
+                  <Chip
+                    key={rel.key}
+                    label={rel.label}
+                    active={draft.relation === rel.key}
+                    onClick={() => setDraft((d) => ({ ...d, relation: rel.key }))}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -451,41 +469,61 @@ function GuestRow({
 
 function GuestList({
   guests,
+  relations,
   onEdit,
   onDelete,
 }: {
   guests: Guest[]
+  relations: GuestRelationType[]
   onEdit: (g: Guest) => void
   onDelete: (id: string) => void
 }) {
   const sections = useMemo(() => {
     const sidesPresent = SIDE_SECTIONS.filter((side) => guests.some((g) => g.side === side))
 
+    // Include orphan relation keys still used on guests but removed from catalog
+    const known = new Set(relations.map((r) => r.key))
+    const orphans = [
+      ...new Set(
+        guests
+          .map((g) => g.relation)
+          .filter((k): k is string => !!k && !known.has(k)),
+      ),
+    ].map((key) => ({ key, label: key.replace(/_/g, ' ') }))
+
+    const allRelationSections = [
+      ...relations.map((r) => ({ key: r.key, label: r.label })),
+      ...orphans,
+      { key: 'none' as const, label: 'Unspecified' },
+    ]
+
     return sidesPresent.map((side) => {
       const sideGuests = guests.filter((g) => g.side === side)
-      const relations = RELATION_SECTIONS.map(({ key, label }) => {
-        const list = sortByNameAsc(
-          sideGuests.filter((g) => {
-            if (key === 'none') return !g.relation
-            return g.relation === key
-          }),
-        )
-        return {
-          key,
-          label,
-          guests: list,
-          total: list.reduce((n, g) => n + pax(g), 0),
-        }
-      }).filter((r) => r.guests.length > 0)
+      const sideRelations = allRelationSections
+        .map(({ key, label }) => {
+          const list = sortByNameAsc(
+            sideGuests.filter((g) => {
+              if (key === 'none') return !g.relation
+              return g.relation === key
+            }),
+          )
+          return {
+            key,
+            label,
+            guests: list,
+            total: list.reduce((n, g) => n + pax(g), 0),
+          }
+        })
+        .filter((r) => r.guests.length > 0)
 
       return {
         side,
         label: SIDE_LABEL[side],
         total: sideGuests.reduce((n, g) => n + pax(g), 0),
-        relations,
+        relations: sideRelations,
       }
     })
-  }, [guests])
+  }, [guests, relations])
 
   if (guests.length === 0) {
     return <p className="py-8 text-center text-sm text-white/60">No guests in this tab yet.</p>
@@ -523,10 +561,174 @@ function GuestList({
   )
 }
 
+function RelationsDrawer({
+  open,
+  onOpenChange,
+  relations,
+  guestCounts,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  relations: GuestRelationType[]
+  guestCounts: Record<string, number>
+}) {
+  const qc = useQueryClient()
+  const [label, setLabel] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+
+  const addRelation = async () => {
+    const trimmed = label.trim()
+    if (trimmed.length < 2) {
+      toast.error('Relation name is required')
+      return
+    }
+    const key = slugifyRelation(trimmed)
+    if (!key) {
+      toast.error('Use letters or numbers in the name')
+      return
+    }
+    if (relations.some((r) => r.key === key)) {
+      toast.error('That relation already exists')
+      return
+    }
+    setAdding(true)
+    try {
+      const sort_order =
+        relations.length > 0 ? Math.max(...relations.map((r) => r.sort_order)) + 1 : 0
+      const { error } = await supabase.from('guest_relations').insert({
+        wedding_id: WEDDING_ID,
+        key,
+        label: trimmed,
+        sort_order,
+      })
+      if (error) throw error
+      toast.success('Relation added')
+      setLabel('')
+      qc.invalidateQueries({ queryKey: ['guest_relations'] })
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to add relation')
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  const removeRelation = async (rel: GuestRelationType) => {
+    setRemovingId(rel.id)
+    try {
+      const inUse = guestCounts[rel.key] ?? 0
+      if (inUse > 0) {
+        const { error: clearError } = await supabase
+          .from('guests')
+          .update({ relation: null })
+          .eq('wedding_id', WEDDING_ID)
+          .eq('relation', rel.key)
+        if (clearError) throw clearError
+      }
+      const { error } = await supabase.from('guest_relations').delete().eq('id', rel.id)
+      if (error) throw error
+      toast.success(inUse > 0 ? `Removed · ${inUse} guest(s) cleared` : 'Relation removed')
+      qc.invalidateQueries({ queryKey: ['guest_relations'] })
+      qc.invalidateQueries({ queryKey: ['guests'] })
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to remove relation')
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
+  return (
+    <Drawer
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) setLabel('')
+        onOpenChange(o)
+      }}
+      dismissible={false}
+      shouldScaleBackground={false}
+      repositionInputs={false}
+      fixed
+    >
+      <DrawerContent>
+        <DrawerHeader className="relative shrink-0 pr-10 text-left">
+          <DrawerTitle>Add relation</DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Add or remove relation types used when grouping guests.
+          </DrawerDescription>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-1 h-9 w-9 text-white/70 hover:text-gold"
+            aria-label="Close"
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </DrawerHeader>
+
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
+          <div className="flex gap-2">
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="e.g. Cousins"
+              className="h-9"
+              enterKeyHint="done"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void addRelation()
+                }
+              }}
+            />
+            <Button type="button" size="sm" className="h-9 shrink-0" disabled={adding} onClick={addRelation}>
+              <Plus className="mr-1 h-4 w-4" />
+              {adding ? 'Adding…' : 'Add'}
+            </Button>
+          </div>
+
+          <ul className="space-y-1">
+            {relations.length === 0 && (
+              <li className="py-6 text-center text-sm text-white/55">No relations yet.</li>
+            )}
+            {relations.map((rel) => (
+              <li
+                key={rel.id}
+                className="flex items-center justify-between gap-2 rounded-md border border-gold/20 px-2.5 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-white">{rel.label}</p>
+                  <p className="text-[11px] text-white/45">
+                    {guestCounts[rel.key] ?? 0}{' '}
+                    {(guestCounts[rel.key] ?? 0) === 1 ? 'guest' : 'guests'}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label={`Remove ${rel.label}`}
+                  disabled={removingId === rel.id}
+                  onClick={() => removeRelation(rel)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
+
 export function GuestsV2Page() {
   const qc = useQueryClient()
   const [tab, setTab] = useState<SideTab>('all')
   const [createOpen, setCreateOpen] = useState(false)
+  const [relationsOpen, setRelationsOpen] = useState(false)
   const [editGuest, setEditGuest] = useState<Guest | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -536,6 +738,19 @@ export function GuestsV2Page() {
       const { data, error } = await supabase.from('guests').select('*').eq('wedding_id', WEDDING_ID)
       if (error) throw error
       return data as Guest[]
+    },
+  })
+
+  const { data: relations = [] } = useQuery({
+    queryKey: ['guest_relations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('guest_relations')
+        .select('*')
+        .eq('wedding_id', WEDDING_ID)
+        .order('sort_order')
+      if (error) throw error
+      return data as GuestRelationType[]
     },
   })
 
@@ -553,6 +768,15 @@ export function GuestsV2Page() {
   })
 
   const eventNames = useMemo(() => events.map((e) => e.name), [events])
+
+  const guestCountsByRelation = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const g of guests) {
+      if (!g.relation) continue
+      counts[g.relation] = (counts[g.relation] ?? 0) + 1
+    }
+    return counts
+  }, [guests])
 
   const bySide = useMemo(() => {
     const groups: Record<SideTab, Guest[]> = {
@@ -628,18 +852,30 @@ export function GuestsV2Page() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Guest list"
-        description="Simple list with drawer add."
+        title="Guests"
         action={
           <div className="flex items-center gap-1.5">
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Add
+            </Button>
             <Button size="sm" variant="outline" asChild>
               <Link to="/family-tree">
                 <GitFork className="mr-1 h-3.5 w-3.5" /> Tree
               </Link>
             </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-1 h-4 w-4" /> Add
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="px-2" aria-label="More actions">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setRelationsOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add relation
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -661,6 +897,7 @@ export function GuestsV2Page() {
             <TabsContent key={t.value} value={t.value} className="mt-4">
               <GuestList
                 guests={bySide[t.value]}
+                relations={relations}
                 onEdit={setEditGuest}
                 onDelete={setDeleteId}
               />
@@ -675,10 +912,12 @@ export function GuestsV2Page() {
         title="Add guest"
         description="Name, people, side, events, and a note."
         eventNames={eventNames}
+        relations={relations}
         existingGuests={guests}
         initial={emptyDraft()}
         submitLabel="Add guest"
         onSubmit={(draft) => saveDraft(draft)}
+        onManageRelations={() => setRelationsOpen(true)}
       />
 
       {editGuest && (
@@ -689,13 +928,22 @@ export function GuestsV2Page() {
           title="Edit guest"
           description="Update guest details."
           eventNames={eventNames}
+          relations={relations}
           existingGuests={guests}
           excludeGuestId={editGuest.id}
           initial={editDraft}
           submitLabel="Save changes"
           onSubmit={(draft) => saveDraft(draft, editGuest.id)}
+          onManageRelations={() => setRelationsOpen(true)}
         />
       )}
+
+      <RelationsDrawer
+        open={relationsOpen}
+        onOpenChange={setRelationsOpen}
+        relations={relations}
+        guestCounts={guestCountsByRelation}
+      />
 
       <DeleteConfirm
         open={!!deleteId}

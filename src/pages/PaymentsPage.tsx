@@ -144,7 +144,6 @@ export function PaymentsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Payments"
-        description="Payments — done, pending & may come"
         action={
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>

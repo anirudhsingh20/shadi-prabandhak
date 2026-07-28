@@ -17,10 +17,7 @@ const links = [
 export function OverviewPage() {
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Overview"
-        description="Guests, budget, vendors, and ceremony schedule."
-      />
+      <PageHeader title="Overview" />
       <div className="grid gap-2">
         {links.map((l) => (
           <Link key={l.to} to={l.to}>

@@ -144,7 +144,6 @@ export function ChecklistPage() {
     <div className="space-y-6">
       <PageHeader
         title="Checklist"
-        description="Planning timeline until November"
         action={
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Add task</Button></DialogTrigger>

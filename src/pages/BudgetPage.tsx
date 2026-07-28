@@ -299,7 +299,6 @@ export function BudgetPage() {
     <div className="space-y-6">
       <PageHeader
         title="Budget"
-        description="Money in bank, categories & overview"
         action={
           <div className="flex flex-wrap gap-1.5">
             <Button size="sm" variant="outline" onClick={() => setBudgetOpen(true)}>

@@ -505,7 +505,6 @@ export function GuestsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Guest list"
-        description="RSVP tracker for both families"
         action={
           adding ? (
             <Button size="sm" variant="outline" onClick={() => setAdding(false)}>

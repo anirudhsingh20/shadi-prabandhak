@@ -16,6 +16,7 @@ drop table if exists checklist_items cascade;
 drop table if exists vendors cascade;
 drop table if exists budget_payments cascade;
 drop table if exists budget_categories cascade;
+drop table if exists guest_relations cascade;
 drop table if exists guests cascade;
 drop table if exists events cascade;
 drop table if exists weddings cascade;
@@ -53,10 +54,19 @@ create table guests (
   rsvp_status text not null check (rsvp_status in ('confirmed', 'pending', 'declined')),
   headcount int not null default 1 check (headcount >= 1),
   events_attending text,
-  relation text check (relation is null or relation in ('father', 'mother', 'friends', 'other')),
+  relation text,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table guest_relations (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  key text not null,
+  label text not null,
+  sort_order int not null default 0,
+  unique (wedding_id, key)
 );
 
 create or replace function set_guests_updated_at()
@@ -131,6 +141,7 @@ create table idea_boards (
 alter table weddings enable row level security;
 alter table events enable row level security;
 alter table guests enable row level security;
+alter table guest_relations enable row level security;
 alter table budget_categories enable row level security;
 alter table budget_payments enable row level security;
 alter table vendors enable row level security;
@@ -141,6 +152,7 @@ alter table idea_boards enable row level security;
 create policy "Authenticated full access weddings" on weddings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access events" on events for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access guests" on guests for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access guest_relations" on guest_relations for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access budget" on budget_categories for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access budget_payments" on budget_payments for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access vendors" on vendors for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
