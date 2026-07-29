@@ -1,15 +1,17 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowUpDown, Layers, Plus, Search, Trash2, X } from 'lucide-react'
+import { ArrowUpDown, History, Layers, Plus, Search, X } from 'lucide-react'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { PageHeader } from '@/components/PageHeader'
 import { PaymentForm, type PaymentImageChange } from '@/components/PaymentForm'
+import { PaymentDrawerPortalContext } from '@/components/PaymentDrawerPortalContext'
+import { isPaymentTitleMenuTarget } from '@/components/PaymentTitleInput'
+import { PaymentTimelineDrawer } from '@/components/PaymentTimelineDrawer'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -22,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { PAYMENT_STATUS_LABEL, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
+import { PAYMENT_STATUS_LABEL, recentPaymentTitles, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
 import {
   deletePaymentImages,
   uploadPaymentImages,
@@ -125,17 +127,22 @@ function PaymentDrawerShell({
   open,
   onOpenChange,
   title,
-  description,
   children,
   footer,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description: string
   children: ReactNode
   footer?: ReactNode
 }) {
+  const portalHostRef = useRef<HTMLDivElement>(null)
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null)
+  const setPortalHostRef = useCallback((node: HTMLDivElement | null) => {
+    portalHostRef.current = node
+    setPortalHost(node)
+  }, [])
+
   return (
     <Drawer
       open={open}
@@ -145,10 +152,16 @@ function PaymentDrawerShell({
       repositionInputs={false}
       fixed
     >
-      <DrawerContent>
+      <DrawerContent
+        onPointerDownOutside={(e) => {
+          if (isPaymentTitleMenuTarget(e.target)) e.preventDefault()
+        }}
+        onInteractOutside={(e) => {
+          if (isPaymentTitleMenuTarget(e.target)) e.preventDefault()
+        }}
+      >
         <DrawerHeader className="relative shrink-0 pr-10 text-left">
           <DrawerTitle>{title}</DrawerTitle>
-          <DrawerDescription className="sr-only">{description}</DrawerDescription>
           <Button
             type="button"
             variant="ghost"
@@ -160,9 +173,16 @@ function PaymentDrawerShell({
             <X className="h-5 w-5" />
           </Button>
         </DrawerHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 pt-2">
-          {children}
-        </div>
+        <PaymentDrawerPortalContext.Provider value={portalHost}>
+          <div ref={setPortalHostRef} className="relative min-h-0 flex-1">
+            <div
+              data-payment-drawer-scroll
+              className="h-full min-h-0 overflow-y-auto overscroll-contain px-3 pb-2 pt-2"
+            >
+              {children}
+            </div>
+          </div>
+        </PaymentDrawerPortalContext.Provider>
         {footer ? <DrawerFooter className="shrink-0 border-t border-gold/20">{footer}</DrawerFooter> : null}
       </DrawerContent>
     </Drawer>
@@ -235,6 +255,7 @@ export function PaymentsPage() {
   const [sortKey, setSortKey] = useState<SortKey>('date_desc')
   const [groupBy, setGroupBy] = useState<GroupBy>('month')
   const [search, setSearch] = useState('')
+  const [timelineOpen, setTimelineOpen] = useState(false)
 
   const { data: categories = [] } = useQuery({
     queryKey: ['budget'],
@@ -266,6 +287,8 @@ export function PaymentsPage() {
     () => Object.fromEntries(categories.map((c) => [c.id, c.name])),
     [categories],
   )
+
+  const titleSuggestions = useMemo(() => recentPaymentTitles(payments), [payments])
 
   const totals = useMemo(() => sumPaymentsByStatus(payments), [payments])
   const outstanding = totals.pending + totals.mayCome
@@ -420,9 +443,14 @@ export function PaymentsPage() {
       <PageHeader
         title="Payments"
         action={
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Add
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => setTimelineOpen(true)}>
+              <History className="mr-1 h-4 w-4" /> Timeline
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Add
+            </Button>
+          </div>
         }
       />
 
@@ -636,7 +664,6 @@ export function PaymentsPage() {
           if (!open) setFormSubmitting(false)
         }}
         title="Add an expense"
-        description="Log a new wedding payment."
         footer={
           <Button
             type="submit"
@@ -652,6 +679,7 @@ export function PaymentsPage() {
           key={createOpen ? 'create-open' : 'create-closed'}
           formId="payment-form-create"
           categories={categories}
+          titleSuggestions={titleSuggestions}
           onSubmittingChange={setFormSubmitting}
           onSubmit={async (v, image) => {
             try {
@@ -673,7 +701,6 @@ export function PaymentsPage() {
           }
         }}
         title="Edit expense"
-        description="Update or delete this payment."
         footer={
           editPay ? (
             <div className="flex w-full gap-2">
@@ -691,7 +718,7 @@ export function PaymentsPage() {
                 className="h-9 flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
                 onClick={() => setDeleteId(editPay.id)}
               >
-                <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+                Delete
               </Button>
             </div>
           ) : null
@@ -702,6 +729,7 @@ export function PaymentsPage() {
             key={editPay.id}
             formId="payment-form-edit"
             categories={categories}
+            titleSuggestions={titleSuggestions}
             onSubmittingChange={setFormSubmitting}
             existingImageUrls={editPay.image_urls ?? []}
             defaultValues={{
@@ -730,6 +758,14 @@ export function PaymentsPage() {
         title="Delete payment?"
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         loading={deleteMutation.isPending}
+      />
+
+      <PaymentTimelineDrawer
+        open={timelineOpen}
+        onOpenChange={setTimelineOpen}
+        payments={payments}
+        categoryMap={categoryMap}
+        onOpenPayment={setEditPay}
       />
     </div>
   )

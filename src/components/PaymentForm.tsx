@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CalendarDays, Camera, ImagePlus, StickyNote, X } from 'lucide-react'
+import { Camera, ImagePlus, X } from 'lucide-react'
 import { ImageLightbox } from '@/components/ImageLightbox'
+import { PaymentTitleInput } from '@/components/PaymentTitleInput'
 import {
   Form,
   FormControl,
@@ -23,14 +24,14 @@ const STATUS_OPTIONS: {
   active: string
 }[] = [
   {
-    value: 'pending',
-    label: 'Pending',
-    active: 'border-transparent bg-amber-400 text-[#1a1208]',
-  },
-  {
     value: 'done',
     label: 'Paid',
     active: 'border-transparent bg-emerald-400 text-[#07140f]',
+  },
+  {
+    value: 'pending',
+    label: 'Pending',
+    active: 'border-transparent bg-amber-400 text-[#1a1208]',
   },
   {
     value: 'may_come',
@@ -56,6 +57,7 @@ export function PaymentForm({
   categories,
   defaultValues,
   existingImageUrls,
+  titleSuggestions = [],
   onSubmit,
   formId = 'payment-form',
   onSubmittingChange,
@@ -63,6 +65,7 @@ export function PaymentForm({
   categories: BudgetCategory[]
   defaultValues?: Partial<BudgetPaymentInput>
   existingImageUrls?: string[]
+  titleSuggestions?: string[]
   onSubmit: (values: BudgetPaymentInput, image: PaymentImageChange) => Promise<void>
   formId?: string
   onSubmittingChange?: (submitting: boolean) => void
@@ -86,13 +89,14 @@ export function PaymentForm({
     defaultValues: {
       title: '',
       amount: undefined as unknown as number,
-      status: 'pending',
+      status: 'done',
       category_id: '',
       due_date: '',
       notes: '',
       ...defaultValues,
     },
   })
+  const amountWords = formatAmountInWords(Number(form.watch('amount')))
   useEffect(() => {
     const submitting = form.formState.isSubmitting
     onSubmittingChange?.(submitting)
@@ -155,103 +159,125 @@ export function PaymentForm({
         )}
         className="space-y-4"
       >
-        {/* Amount — left aligned */}
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => {
-            const amountWords = formatAmountInWords(Number(field.value))
-            return (
-            <FormItem className="space-y-0.5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Amount</p>
-              <FormControl>
-                <div>
-                  <div className="flex items-baseline gap-1 border-b border-gold/30 pb-1">
-                    <span className="font-display text-xl font-semibold leading-none text-gold/80">₹</span>
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      placeholder="0"
-                      className="h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-left font-display text-3xl font-semibold leading-none tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+        {/* Amount + description */}
+        <div className="space-y-0.5">
+          <div className="flex items-end gap-3">
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem className="shrink-0 space-y-0">
+                  <FormControl>
+                    <div className="flex w-max shrink-0 items-baseline gap-0.5 border-b border-gold/30 pb-1">
+                      <span className="font-display text-lg font-semibold leading-none text-gold/80">₹</span>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        placeholder="0"
+                        className="h-auto min-h-0 w-[8ch] max-w-[8ch] shrink-0 border-0 bg-transparent px-0 py-0 text-left font-display text-2xl font-semibold leading-none tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={
+                          field.value === undefined ||
+                          field.value === null ||
+                          Number.isNaN(Number(field.value))
+                            ? ''
+                            : field.value
+                        }
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          field.onChange(raw === '' ? undefined : Number(raw))
+                        }}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem className="min-w-0 flex-1 space-y-0">
+                  <FormControl>
+                    <PaymentTitleInput
+                      suggestions={titleSuggestions}
                       name={field.name}
                       ref={field.ref}
+                      value={field.value ?? ''}
                       onBlur={field.onBlur}
-                      value={
-                        field.value === undefined ||
-                        field.value === null ||
-                        Number.isNaN(Number(field.value))
-                          ? ''
-                          : field.value
-                      }
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        field.onChange(raw === '' ? undefined : Number(raw))
-                      }}
+                      onChange={field.onChange}
                     />
-                  </div>
-                  {amountWords ? (
-                    <p className="pt-1.5 text-[11px] leading-snug text-gold/70">{amountWords}</p>
-                  ) : null}
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-            )
-          }}
-        />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          {amountWords ? (
+            <p className="pt-1.5 text-[11px] leading-snug text-gold/70">{amountWords}</p>
+          ) : null}
+        </div>
 
-        {/* Description */}
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem className="space-y-0.5">
-              <FormControl>
-                <Input
-                  placeholder="What was this for?"
-                  className="h-9 border-0 border-b border-gold/25 bg-transparent px-0 text-sm shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Status chips */}
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem className="space-y-1.5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Status</p>
-              <FormControl>
-                <div className="flex flex-wrap gap-1">
-                  {STATUS_OPTIONS.map((opt) => {
-                    const active = field.value === opt.value
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => field.onChange(opt.value)}
-                        className={cn(
-                          'rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors',
-                          active
-                            ? opt.active
-                            : 'border-gold/25 bg-white/[0.03] text-white/65 hover:bg-white/[0.06]',
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Status + due date */}
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Status</p>
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem className="space-y-0">
+                  <FormControl>
+                    <div className="flex flex-wrap gap-1">
+                      {STATUS_OPTIONS.map((opt) => {
+                        const active = field.value === opt.value
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => field.onChange(opt.value)}
+                            className={cn(
+                              'flex h-[22px] items-center rounded-full border px-2.5 text-[11px] font-semibold leading-none transition-colors',
+                              active
+                                ? opt.active
+                                : 'border-gold/25 bg-white/[0.03] text-white/65 hover:bg-white/[0.06]',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="w-[7.5rem] shrink-0 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Due</p>
+            <FormField
+              control={form.control}
+              name="due_date"
+              render={({ field }) => (
+                <FormItem className="space-y-0">
+                  <FormControl>
+                    <Input
+                      type="date"
+                      className="h-[22px] w-full border-0 bg-transparent p-0 text-[11px] leading-none text-white/70 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:h-3.5 [&::-webkit-calendar-picker-indicator]:w-3.5 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
         {/* Category chips */}
         <FormField
@@ -396,55 +422,25 @@ export function PaymentForm({
           {imageError && <p className="text-[11px] text-destructive">{imageError}</p>}
         </div>
 
-        {/* Due date + Notes — compact rows */}
-        <div className="overflow-hidden rounded-md border border-gold/20 divide-y divide-gold/15">
-          <FormField
-            control={form.control}
-            name="due_date"
-            render={({ field }) => (
-              <FormItem className="space-y-0">
-                <div className="flex items-center gap-2 px-2.5 py-1.5">
-                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gold/70" aria-hidden />
-                  <p className="w-16 shrink-0 text-[10px] font-medium uppercase tracking-wide text-white/45">
-                    Due
-                  </p>
-                  <FormControl>
-                    <Input
-                      type="date"
-                      className="h-7 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      {...field}
-                    />
-                  </FormControl>
-                </div>
-                <FormMessage className="px-2.5 pb-1" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem className="space-y-0">
-                <div className="flex items-start gap-2 px-2.5 py-1.5">
-                  <StickyNote className="mt-1 h-3.5 w-3.5 shrink-0 text-gold/70" aria-hidden />
-                  <p className="mt-1 w-16 shrink-0 text-[10px] font-medium uppercase tracking-wide text-white/45">
-                    Notes
-                  </p>
-                  <FormControl>
-                    <Textarea
-                      rows={2}
-                      placeholder="Optional…"
-                      className="min-h-[2.5rem] flex-1 resize-none border-0 bg-transparent px-0 py-0.5 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      {...field}
-                    />
-                  </FormControl>
-                </div>
-                <FormMessage className="px-2.5 pb-1" />
-              </FormItem>
-            )}
-          />
-        </div>
+        {/* Notes */}
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem className="space-y-1">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Notes</p>
+              <FormControl>
+                <Textarea
+                  rows={2}
+                  placeholder="Optional…"
+                  className="min-h-[2.5rem] resize-none border-0 border-b border-gold/20 bg-transparent px-0 py-1 text-xs shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </form>
     </Form>
   )

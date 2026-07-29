@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
@@ -174,13 +173,11 @@ function BudgetDrawerShell({
   open,
   onOpenChange,
   title,
-  description,
   children,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description: string
   children: ReactNode
 }) {
   return (
@@ -195,7 +192,6 @@ function BudgetDrawerShell({
       <DrawerContent>
         <DrawerHeader className="relative shrink-0 pr-10 text-left">
           <DrawerTitle>{title}</DrawerTitle>
-          <DrawerDescription className="sr-only">{description}</DrawerDescription>
           <Button
             type="button"
             variant="ghost"
@@ -810,7 +806,6 @@ export function BudgetPage() {
         open={catCreateOpen}
         onOpenChange={setCatCreateOpen}
         title="Add category"
-        description="Create a new budget category with an allocated amount."
       >
         <CategoryForm
           key={catCreateOpen ? 'create-open' : 'create-closed'}
@@ -823,7 +818,6 @@ export function BudgetPage() {
         open={budgetOpen}
         onOpenChange={setBudgetOpen}
         title="Total budget"
-        description="Set the overall wedding budget."
       >
         <TotalBudgetForm
           key={wedding?.total_budget ?? 0}
@@ -836,7 +830,6 @@ export function BudgetPage() {
         open={bankOpen}
         onOpenChange={setBankOpen}
         title="Money in bank"
-        description="Update how much money is currently in the bank."
       >
         <MoneyForm
           key={wedding?.money_in_bank ?? 0}
@@ -849,7 +842,6 @@ export function BudgetPage() {
         open={!!editCat}
         onOpenChange={(o) => !o && setEditCat(null)}
         title="Edit category"
-        description="Update this budget category name or allocation."
       >
         {editCat && (
           <CategoryForm

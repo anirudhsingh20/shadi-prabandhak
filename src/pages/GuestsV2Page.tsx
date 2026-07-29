@@ -15,7 +15,6 @@ import {
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -151,7 +150,6 @@ function GuestDrawerForm({
   open,
   onOpenChange,
   title,
-  description,
   eventNames,
   relations,
   existingGuests,
@@ -164,7 +162,6 @@ function GuestDrawerForm({
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description: string
   eventNames: string[]
   relations: GuestRelationType[]
   existingGuests: Guest[]
@@ -242,7 +239,6 @@ function GuestDrawerForm({
       <DrawerContent>
         <DrawerHeader className="relative shrink-0 pr-10 text-left">
           <DrawerTitle>{title}</DrawerTitle>
-          <DrawerDescription className="sr-only">{description}</DrawerDescription>
           <Button
             type="button"
             variant="ghost"
@@ -678,9 +674,6 @@ function RelationsDrawer({
       <DrawerContent>
         <DrawerHeader className="relative shrink-0 pr-10 text-left">
           <DrawerTitle>Add relation</DrawerTitle>
-          <DrawerDescription className="sr-only">
-            Add or remove relation types used when grouping guests.
-          </DrawerDescription>
           <Button
             type="button"
             variant="ghost"
@@ -936,7 +929,6 @@ export function GuestsV2Page() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         title="Add guest"
-        description="Name, people, side, events, and a note."
         eventNames={eventNames}
         relations={relations}
         existingGuests={guests}
@@ -952,7 +944,6 @@ export function GuestsV2Page() {
           open={!!editGuest}
           onOpenChange={(o) => !o && setEditGuest(null)}
           title="Edit guest"
-          description="Update guest details."
           eventNames={eventNames}
           relations={relations}
           existingGuests={guests}
