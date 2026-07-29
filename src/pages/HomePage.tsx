@@ -34,6 +34,7 @@ import type {
   ChecklistPriority,
   ChecklistStatus,
   Decision,
+  Event,
   Guest,
   PaymentMakerType,
   PaymentSourceType,
@@ -485,6 +486,26 @@ export function HomePage() {
       .slice(0, 3)
   }, [payments])
 
+  const { data: events = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('wedding_id', WEDDING_ID)
+        .order('sort_order')
+      if (error) throw error
+      return data as Event[]
+    },
+  })
+
+  const homeEvents = useMemo(() => {
+    return [...events].sort((a, b) => {
+      if (a.event_date !== b.event_date) return a.event_date.localeCompare(b.event_date)
+      return a.sort_order - b.sort_order
+    })
+  }, [events])
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('decisions').delete().eq('id', id)
@@ -600,6 +621,80 @@ export function HomePage() {
       </section>
 
       <section>
+        <SectionNav
+          title="Decisions"
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 shrink-0 p-0 text-white/55 hover:text-gold"
+              aria-label="Add decision"
+              onClick={() => setDrawerOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
+
+        {isLoading ? (
+          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+        ) : decisions.length === 0 ? (
+          <p className="py-0.5 text-[12px] text-white/45">No decisions yet.</p>
+        ) : (
+          <>
+            <div className="relative mt-0.5 pl-3.5">
+              <div
+                className="absolute bottom-1 left-[4px] top-1 w-px bg-gold/20"
+                aria-hidden
+              />
+              <ul>
+                {(showAllDecisions ? decisions : decisions.slice(0, 3)).map((d, index, list) => (
+                  <li key={d.id} className="relative">
+                    <span
+                      className="absolute -left-3.5 top-2 h-2 w-2 rounded-full bg-gold/70 ring-4 ring-gold/15"
+                      aria-hidden
+                    />
+                    <div
+                      className={cn(
+                        'flex items-start gap-1 rounded-md py-1 pl-1 pr-0.5',
+                        index < list.length - 1 && 'border-b border-white/[0.04]',
+                      )}
+                    >
+                      <span className="w-9 shrink-0 pt-px text-[10px] font-medium tabular-nums leading-snug text-white/40">
+                        {formatDecisionDate(d.decision_date)}
+                      </span>
+                      <p className="min-w-0 flex-1 text-[12px] leading-snug text-white/85">
+                        {d.text}
+                      </p>
+                      <button
+                        type="button"
+                        aria-label="Delete decision"
+                        className="mt-px shrink-0 rounded p-0.5 text-white/30 hover:text-white/70"
+                        onClick={() => setDeleteId(d.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {decisions.length > 3 ? (
+              <button
+                type="button"
+                onClick={() => setShowAllDecisions((v) => !v)}
+                className="mt-0.5 text-[11px] font-medium text-gold/75 hover:text-gold"
+              >
+                {showAllDecisions
+                  ? 'Show less'
+                  : `+${decisions.length - 3} more`}
+              </button>
+            ) : null}
+          </>
+        )}
+      </section>
+
+      <section>
         <SectionNav to="/payments" title="Payments" hint="Paid" />
         {paymentsLoading ? (
           <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
@@ -673,76 +768,39 @@ export function HomePage() {
       </section>
 
       <section>
-        <SectionNav
-          title="Decisions"
-          action={
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 shrink-0 p-0 text-white/55 hover:text-gold"
-              aria-label="Add decision"
-              onClick={() => setDrawerOpen(true)}
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          }
-        />
-
-        {isLoading ? (
+        <SectionNav to="/events" title="Events" />
+        {eventsLoading ? (
           <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
-        ) : decisions.length === 0 ? (
-          <p className="py-0.5 text-[12px] text-white/45">No decisions yet.</p>
+        ) : homeEvents.length === 0 ? (
+          <p className="py-0.5 text-[12px] text-white/45">No events yet.</p>
         ) : (
-          <>
-            <div className="relative mt-0.5 pl-3.5">
-              <div
-                className="absolute bottom-1 left-[4px] top-1 w-px bg-gold/20"
-                aria-hidden
-              />
-              <ul>
-                {(showAllDecisions ? decisions : decisions.slice(0, 3)).map((d, index, list) => (
-                  <li key={d.id} className="relative">
-                    <span
-                      className="absolute -left-3.5 top-2 h-2 w-2 rounded-full bg-gold/70 ring-4 ring-gold/15"
-                      aria-hidden
-                    />
-                    <div
-                      className={cn(
-                        'flex items-start gap-1 rounded-md py-1 pl-1 pr-0.5',
-                        index < list.length - 1 && 'border-b border-white/[0.04]',
-                      )}
+          <div className="-mx-4 mt-1 overflow-x-auto overscroll-x-contain px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <ul className="flex w-max gap-2 pb-0.5">
+              {homeEvents.map((event) => {
+                const meta = [event.time_label, event.tag].filter(Boolean).join(' · ')
+                return (
+                  <li key={event.id} className="w-[132px] shrink-0">
+                    <Link
+                      to="/events"
+                      className="flex h-full flex-col rounded-md border border-gold/25 bg-white/[0.03] px-2.5 py-2 transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
                     >
-                      <span className="w-9 shrink-0 pt-px text-[10px] font-medium tabular-nums leading-snug text-white/40">
-                        {formatDecisionDate(d.decision_date)}
+                      <span className="text-[10px] font-medium tabular-nums text-white/40">
+                        {formatDecisionDate(event.event_date)}
                       </span>
-                      <p className="min-w-0 flex-1 text-[12px] leading-snug text-white/85">
-                        {d.text}
+                      <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-white/90">
+                        {event.name}
                       </p>
-                      <button
-                        type="button"
-                        aria-label="Delete decision"
-                        className="mt-px shrink-0 rounded p-0.5 text-white/30 hover:text-white/70"
-                        onClick={() => setDeleteId(d.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                      {meta ? (
+                        <p className="mt-auto pt-1 truncate text-[10px] leading-tight text-white/35">
+                          {meta}
+                        </p>
+                      ) : null}
+                    </Link>
                   </li>
-                ))}
-              </ul>
-            </div>
-            {decisions.length > 3 ? (
-              <button
-                type="button"
-                onClick={() => setShowAllDecisions((v) => !v)}
-                className="mt-0.5 text-[11px] font-medium text-gold/75 hover:text-gold"
-              >
-                {showAllDecisions
-                  ? 'Show less'
-                  : `+${decisions.length - 3} more`}
-              </button>
-            ) : null}
-          </>
+                )
+              })}
+            </ul>
+          </div>
         )}
       </section>
 
