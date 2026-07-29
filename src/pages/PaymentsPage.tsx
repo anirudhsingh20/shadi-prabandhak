@@ -6,6 +6,7 @@ import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { PageHeader } from '@/components/PageHeader'
 import { PaymentForm, type PaymentImageChange } from '@/components/PaymentForm'
 import { PaymentDrawerPortalContext } from '@/components/PaymentDrawerPortalContext'
+import { PaymentOptionCatalogDrawer } from '@/components/PaymentOptionCatalogDrawer'
 import { isPaymentTitleMenuTarget } from '@/components/PaymentTitleInput'
 import { PaymentTimelineDrawer } from '@/components/PaymentTimelineDrawer'
 import { Button } from '@/components/ui/button'
@@ -24,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { PAYMENT_STATUS_LABEL, recentPaymentTitles, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
+import { recentPaymentTitles, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
 import {
   deletePaymentImages,
   uploadPaymentImages,
@@ -32,7 +33,13 @@ import {
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BudgetPaymentInput } from '@/lib/validations'
-import type { BudgetCategory, BudgetPayment, BudgetPaymentStatus } from '@/lib/types'
+import type {
+  BudgetCategory,
+  BudgetPayment,
+  BudgetPaymentStatus,
+  PaymentMakerType,
+  PaymentSourceType,
+} from '@/lib/types'
 
 type StatusFilter = 'all' | BudgetPaymentStatus
 type CategoryFilter = 'all' | 'none' | string
@@ -153,6 +160,7 @@ function PaymentDrawerShell({
       fixed
     >
       <DrawerContent
+        className="max-h-[min(92dvh,820px)] overflow-hidden"
         onPointerDownOutside={(e) => {
           if (isPaymentTitleMenuTarget(e.target)) e.preventDefault()
         }}
@@ -174,10 +182,13 @@ function PaymentDrawerShell({
           </Button>
         </DrawerHeader>
         <PaymentDrawerPortalContext.Provider value={portalHost}>
-          <div ref={setPortalHostRef} className="relative min-h-0 flex-1">
+          <div
+            ref={setPortalHostRef}
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+          >
             <div
               data-payment-drawer-scroll
-              className="h-full min-h-0 overflow-y-auto overscroll-contain px-3 pb-2 pt-2"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 pt-2 [touch-action:pan-y]"
             >
               {children}
             </div>
@@ -192,15 +203,19 @@ function PaymentDrawerShell({
 function ExpenseRow({
   payment,
   categoryName,
+  madeByLabel,
+  sourceLabel,
   onOpen,
 }: {
   payment: BudgetPayment
   categoryName?: string
+  madeByLabel?: string
+  sourceLabel?: string
   onOpen: () => void
 }) {
   const tone = STATUS_TONE[payment.status]
   const dateLabel = formatShortDate(payment.due_date) ?? formatShortDate(payment.created_at.slice(0, 10))
-  const meta = [categoryName, dateLabel].filter(Boolean).join(' · ')
+  const meta = [categoryName, madeByLabel, sourceLabel, dateLabel].filter(Boolean).join(' · ')
 
   return (
     <button
@@ -227,9 +242,8 @@ function ExpenseRow({
       )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-medium text-white/90">{payment.title}</span>
-        <span className="mt-0.5 block truncate text-xs text-white/50">
+        <span className="mt-0.5 block truncate text-[10px] leading-snug text-white/45">
           {meta || 'No category'}
-          <span className="text-white/35"> · {PAYMENT_STATUS_LABEL[payment.status]}</span>
         </span>
       </span>
       <span className="shrink-0 text-right">
@@ -256,6 +270,8 @@ export function PaymentsPage() {
   const [groupBy, setGroupBy] = useState<GroupBy>('month')
   const [search, setSearch] = useState('')
   const [timelineOpen, setTimelineOpen] = useState(false)
+  const [makersOpen, setMakersOpen] = useState(false)
+  const [sourcesOpen, setSourcesOpen] = useState(false)
 
   const { data: categories = [] } = useQuery({
     queryKey: ['budget'],
@@ -267,6 +283,32 @@ export function PaymentsPage() {
         .order('sort_order')
       if (error) throw error
       return data as BudgetCategory[]
+    },
+  })
+
+  const { data: makers = [] } = useQuery({
+    queryKey: ['payment_makers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_makers')
+        .select('*')
+        .eq('wedding_id', WEDDING_ID)
+        .order('sort_order')
+      if (error) throw error
+      return data as PaymentMakerType[]
+    },
+  })
+
+  const { data: sources = [] } = useQuery({
+    queryKey: ['payment_sources'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_sources')
+        .select('*')
+        .eq('wedding_id', WEDDING_ID)
+        .order('sort_order')
+      if (error) throw error
+      return data as PaymentSourceType[]
     },
   })
 
@@ -287,6 +329,34 @@ export function PaymentsPage() {
     () => Object.fromEntries(categories.map((c) => [c.id, c.name])),
     [categories],
   )
+
+  const makerMap = useMemo(
+    () => Object.fromEntries(makers.map((m) => [m.key, m.label])),
+    [makers],
+  )
+
+  const sourceMap = useMemo(
+    () => Object.fromEntries(sources.map((s) => [s.key, s.label])),
+    [sources],
+  )
+
+  const makerUsage = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const p of payments) {
+      if (!p.made_by) continue
+      counts[p.made_by] = (counts[p.made_by] ?? 0) + 1
+    }
+    return counts
+  }, [payments])
+
+  const sourceUsage = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const p of payments) {
+      if (!p.payment_source) continue
+      counts[p.payment_source] = (counts[p.payment_source] ?? 0) + 1
+    }
+    return counts
+  }, [payments])
 
   const titleSuggestions = useMemo(() => recentPaymentTitles(payments), [payments])
 
@@ -415,6 +485,8 @@ export function PaymentsPage() {
       category_id: categoryId,
       due_date: values.due_date || null,
       notes: values.notes || null,
+      made_by: values.made_by || null,
+      payment_source: values.payment_source || null,
       image_urls: imageUrls,
       wedding_id: WEDDING_ID,
     }
@@ -649,6 +721,10 @@ export function PaymentsPage() {
                   key={p.id}
                   payment={p}
                   categoryName={p.category_id ? categoryMap[p.category_id] : undefined}
+                  madeByLabel={p.made_by ? makerMap[p.made_by] ?? p.made_by : undefined}
+                  sourceLabel={
+                    p.payment_source ? sourceMap[p.payment_source] ?? p.payment_source : undefined
+                  }
                   onOpen={() => setEditPay(p)}
                 />
               ))}
@@ -679,7 +755,11 @@ export function PaymentsPage() {
           key={createOpen ? 'create-open' : 'create-closed'}
           formId="payment-form-create"
           categories={categories}
+          makers={makers}
+          sources={sources}
           titleSuggestions={titleSuggestions}
+          onManageMakers={() => setMakersOpen(true)}
+          onManageSources={() => setSourcesOpen(true)}
           onSubmittingChange={setFormSubmitting}
           onSubmit={async (v, image) => {
             try {
@@ -729,7 +809,11 @@ export function PaymentsPage() {
             key={editPay.id}
             formId="payment-form-edit"
             categories={categories}
+            makers={makers}
+            sources={sources}
             titleSuggestions={titleSuggestions}
+            onManageMakers={() => setMakersOpen(true)}
+            onManageSources={() => setSourcesOpen(true)}
             onSubmittingChange={setFormSubmitting}
             existingImageUrls={editPay.image_urls ?? []}
             defaultValues={{
@@ -739,6 +823,8 @@ export function PaymentsPage() {
               category_id: editPay.category_id ?? '',
               due_date: editPay.due_date ?? '',
               notes: editPay.notes ?? '',
+              made_by: editPay.made_by ?? '',
+              payment_source: editPay.payment_source ?? '',
             }}
             onSubmit={async (v, image) => {
               try {
@@ -765,7 +851,25 @@ export function PaymentsPage() {
         onOpenChange={setTimelineOpen}
         payments={payments}
         categoryMap={categoryMap}
+        makerMap={makerMap}
+        sourceMap={sourceMap}
         onOpenPayment={setEditPay}
+      />
+
+      <PaymentOptionCatalogDrawer
+        kind="makers"
+        open={makersOpen}
+        onOpenChange={setMakersOpen}
+        options={makers}
+        usageCounts={makerUsage}
+      />
+
+      <PaymentOptionCatalogDrawer
+        kind="sources"
+        open={sourcesOpen}
+        onOpenChange={setSourcesOpen}
+        options={sources}
+        usageCounts={sourceUsage}
       />
     </div>
   )

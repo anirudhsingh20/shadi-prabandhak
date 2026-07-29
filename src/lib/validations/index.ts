@@ -47,6 +47,8 @@ export const budgetPaymentSchema = z.object({
   category_id: z.string().uuid().optional().or(z.literal('')),
   due_date: z.string().optional(),
   notes: z.string().optional(),
+  made_by: z.string().optional().or(z.literal('')),
+  payment_source: z.string().optional().or(z.literal('')),
 })
 
 export const vendorSchema = z.object({

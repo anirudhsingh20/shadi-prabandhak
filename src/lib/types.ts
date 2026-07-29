@@ -67,7 +67,27 @@ export interface BudgetPayment {
   due_date: string | null
   notes: string | null
   image_urls: string[]
+  made_by: string | null
+  payment_source: string | null
   created_at: string
+}
+
+/** Catalog option for payment "made by" (bride, groom, …) */
+export interface PaymentMakerType {
+  id: string
+  wedding_id: string
+  key: string
+  label: string
+  sort_order: number
+}
+
+/** Catalog option for payment source (cash, SBI, …) */
+export interface PaymentSourceType {
+  id: string
+  wedding_id: string
+  key: string
+  label: string
+  sort_order: number
 }
 
 export interface Vendor {
@@ -119,6 +139,16 @@ export interface Database {
       }
       budget_categories: { Row: BudgetCategory; Insert: Omit<BudgetCategory, 'id'> & { id?: string }; Update: Partial<BudgetCategory> }
       budget_payments: { Row: BudgetPayment; Insert: Omit<BudgetPayment, 'id' | 'created_at'> & { id?: string; created_at?: string }; Update: Partial<BudgetPayment> }
+      payment_makers: {
+        Row: PaymentMakerType
+        Insert: Omit<PaymentMakerType, 'id'> & { id?: string }
+        Update: Partial<PaymentMakerType>
+      }
+      payment_sources: {
+        Row: PaymentSourceType
+        Insert: Omit<PaymentSourceType, 'id'> & { id?: string }
+        Update: Partial<PaymentSourceType>
+      }
       vendors: { Row: Vendor; Insert: Omit<Vendor, 'id'> & { id?: string }; Update: Partial<Vendor> }
       checklist_items: { Row: ChecklistItem; Insert: Omit<ChecklistItem, 'id'> & { id?: string }; Update: Partial<ChecklistItem> }
       decisions: { Row: Decision; Insert: Omit<Decision, 'id' | 'created_at'> & { id?: string; created_at?: string }; Update: Partial<Decision> }

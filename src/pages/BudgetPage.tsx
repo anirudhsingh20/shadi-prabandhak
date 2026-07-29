@@ -8,7 +8,6 @@ import { ChevronDown, Pencil, Plus, Trash2, Wallet, X } from 'lucide-react'
 import { BudgetCharts } from '@/components/BudgetCharts'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { PageHeader } from '@/components/PageHeader'
-import { PaymentStatusBadge } from '@/components/PaymentStatusBadge'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -48,6 +47,58 @@ import {
 import type { BudgetCategory, BudgetPayment, BudgetPaymentStatus, Wedding } from '@/lib/types'
 
 type BudgetTab = 'categories' | 'payments' | 'charts'
+
+const AMOUNT_TONE: Record<BudgetPaymentStatus, string> = {
+  done: 'text-emerald-400',
+  pending: 'text-amber-300',
+  may_come: 'text-white/55',
+}
+
+function formatShortDate(iso: string | null | undefined) {
+  if (!iso) return null
+  const d = new Date(`${iso}T12:00:00`)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
+function BudgetPaymentRow({
+  payment,
+  categoryName,
+  showCategory = true,
+}: {
+  payment: BudgetPayment
+  categoryName?: string
+  showCategory?: boolean
+}) {
+  const dateLabel = formatShortDate(payment.due_date)
+  const meta = [
+    showCategory ? categoryName || 'Uncategorized' : null,
+    dateLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-gold/15 px-3 py-2 last:border-b-0">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-medium leading-tight text-white/90">
+          {payment.title}
+        </p>
+        {meta ? (
+          <p className="mt-0.5 truncate text-[10px] leading-snug text-white/45">{meta}</p>
+        ) : null}
+      </div>
+      <p
+        className={cn(
+          'shrink-0 font-display text-[13px] font-semibold tabular-nums',
+          AMOUNT_TONE[payment.status],
+        )}
+      >
+        {formatCurrency(Number(payment.amount))}
+      </p>
+    </div>
+  )
+}
 
 function MoneyForm({
   defaultValue,
@@ -654,28 +705,11 @@ export function BudgetPage() {
                           </p>
                         ) : (
                           catPayments.map((p) => (
-                            <div
+                            <BudgetPaymentRow
                               key={p.id}
-                              className="flex items-start justify-between gap-2 border-b border-gold/15 px-3 py-2 last:border-b-0"
-                            >
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <p className="truncate text-sm text-white">{p.title}</p>
-                                  <PaymentStatusBadge status={p.status} />
-                                </div>
-                                <p className="text-[11px] text-white/50">
-                                  {[
-                                    p.due_date ? `Due ${p.due_date}` : null,
-                                    p.notes || null,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' · ') || '—'}
-                                </p>
-                              </div>
-                              <p className="shrink-0 font-display text-sm font-semibold tabular-nums text-gold">
-                                {formatCurrency(Number(p.amount))}
-                              </p>
-                            </div>
+                              payment={p}
+                              showCategory={false}
+                            />
                           ))
                         )}
                       </div>
@@ -714,23 +748,11 @@ export function BudgetPage() {
                   {expandedCat === '__none__' && (
                     <div className="border-t border-gold/25 bg-black/20">
                       {(paymentsByCatId.__none__ ?? []).map((p) => (
-                        <div
+                        <BudgetPaymentRow
                           key={p.id}
-                          className="flex items-start justify-between gap-2 border-b border-gold/15 px-3 py-2 last:border-b-0"
-                        >
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <p className="truncate text-sm text-white">{p.title}</p>
-                              <PaymentStatusBadge status={p.status} />
-                            </div>
-                            {p.notes && (
-                              <p className="text-[11px] text-white/50">{p.notes}</p>
-                            )}
-                          </div>
-                          <p className="shrink-0 font-display text-sm font-semibold tabular-nums text-gold">
-                            {formatCurrency(Number(p.amount))}
-                          </p>
-                        </div>
+                          payment={p}
+                          showCategory={false}
+                        />
                       ))}
                     </div>
                   )}
@@ -768,29 +790,11 @@ export function BudgetPage() {
 
               <div className="overflow-hidden rounded-md border border-gold/35">
                 {filteredPayments.map((p) => (
-                  <div
+                  <BudgetPaymentRow
                     key={p.id}
-                    className="flex items-start justify-between gap-2 border-b border-gold/15 px-3 py-2.5 last:border-b-0"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <p className="truncate text-sm font-medium text-white">{p.title}</p>
-                        <PaymentStatusBadge status={p.status} />
-                      </div>
-                      <p className="mt-0.5 text-[11px] text-white/50">
-                        {[
-                          p.category_id ? categoryMap[p.category_id] : 'Uncategorized',
-                          p.due_date ? `Due ${p.due_date}` : null,
-                          p.notes || null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </p>
-                    </div>
-                    <p className="shrink-0 font-display text-sm font-semibold tabular-nums text-gold">
-                      {formatCurrency(Number(p.amount))}
-                    </p>
-                  </div>
+                    payment={p}
+                    categoryName={p.category_id ? categoryMap[p.category_id] : undefined}
+                  />
                 ))}
               </div>
             </TabsContent>

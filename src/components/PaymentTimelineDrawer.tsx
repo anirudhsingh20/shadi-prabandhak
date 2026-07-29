@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/select'
 import {
   buildPaymentTimeline,
-  PAYMENT_STATUS_LABEL,
   paymentTitleSummaries,
   paymentTimelineDate,
   recentPaymentTitles,
@@ -25,21 +24,18 @@ import {
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BudgetPayment, BudgetPaymentStatus } from '@/lib/types'
 
-const STATUS_TONE: Record<BudgetPaymentStatus, { amount: string; dot: string; chip: string }> = {
+const STATUS_TONE: Record<BudgetPaymentStatus, { amount: string; dot: string }> = {
   done: {
     amount: 'text-emerald-400',
     dot: 'bg-emerald-400 ring-emerald-400/25',
-    chip: 'bg-emerald-500/15 text-emerald-300',
   },
   pending: {
     amount: 'text-amber-300',
     dot: 'bg-amber-300 ring-amber-300/25',
-    chip: 'bg-amber-500/15 text-amber-200',
   },
   may_come: {
     amount: 'text-white/55',
     dot: 'bg-white/45 ring-white/15',
-    chip: 'bg-white/10 text-white/65',
   },
 }
 
@@ -61,12 +57,16 @@ export function PaymentTimelineDrawer({
   onOpenChange,
   payments,
   categoryMap,
+  makerMap = {},
+  sourceMap = {},
   onOpenPayment,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   payments: BudgetPayment[]
   categoryMap: Record<string, string>
+  makerMap?: Record<string, string>
+  sourceMap?: Record<string, string>
   onOpenPayment: (payment: BudgetPayment) => void
 }) {
   const [titleFilter, setTitleFilter] = useState<'all' | string>('all')
@@ -299,6 +299,15 @@ export function PaymentTimelineDrawer({
                         const categoryName = payment.category_id
                           ? categoryMap[payment.category_id]
                           : undefined
+                        const madeByLabel = payment.made_by
+                          ? makerMap[payment.made_by] ?? payment.made_by
+                          : undefined
+                        const sourceLabel = payment.payment_source
+                          ? sourceMap[payment.payment_source] ?? payment.payment_source
+                          : undefined
+                        const meta = [categoryName, madeByLabel, sourceLabel]
+                          .filter(Boolean)
+                          .join(' · ')
                         const images = payment.image_urls ?? []
 
                         return (
@@ -330,11 +339,11 @@ export function PaymentTimelineDrawer({
                                   <p className="truncate text-sm font-medium text-white/90">
                                     {payment.title}
                                   </p>
-                                  <p className="mt-0.5 truncate text-[11px] text-white/45">
-                                    {[categoryName, PAYMENT_STATUS_LABEL[payment.status]]
-                                      .filter(Boolean)
-                                      .join(' · ')}
-                                  </p>
+                                  {meta ? (
+                                    <p className="mt-0.5 truncate text-[10px] leading-snug text-white/45">
+                                      {meta}
+                                    </p>
+                                  ) : null}
                                 </div>
                                 <div className="shrink-0 text-right">
                                   <p
@@ -345,14 +354,6 @@ export function PaymentTimelineDrawer({
                                   >
                                     {formatCurrency(Number(payment.amount))}
                                   </p>
-                                  <span
-                                    className={cn(
-                                      'mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide',
-                                      tone.chip,
-                                    )}
-                                  >
-                                    {PAYMENT_STATUS_LABEL[payment.status]}
-                                  </span>
                                 </div>
                               </button>
 

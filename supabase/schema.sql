@@ -83,7 +83,27 @@ create table if not exists budget_payments (
   due_date date,
   notes text,
   image_urls text[] not null default '{}',
+  made_by text,
+  payment_source text,
   created_at timestamptz not null default now()
+);
+
+create table if not exists payment_makers (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  key text not null,
+  label text not null,
+  sort_order int not null default 0,
+  unique (wedding_id, key)
+);
+
+create table if not exists payment_sources (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  key text not null,
+  label text not null,
+  sort_order int not null default 0,
+  unique (wedding_id, key)
 );
 
 -- Vendors
@@ -132,6 +152,8 @@ alter table guests enable row level security;
 alter table guest_relations enable row level security;
 alter table budget_categories enable row level security;
 alter table budget_payments enable row level security;
+alter table payment_makers enable row level security;
+alter table payment_sources enable row level security;
 alter table vendors enable row level security;
 alter table checklist_items enable row level security;
 alter table decisions enable row level security;
@@ -143,6 +165,8 @@ create policy "Authenticated full access guests" on guests for all using (auth.r
 create policy "Authenticated full access guest_relations" on guest_relations for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access budget" on budget_categories for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access budget_payments" on budget_payments for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access payment_makers" on payment_makers for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access payment_sources" on payment_sources for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access vendors" on vendors for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access checklist" on checklist_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access decisions" on decisions for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
