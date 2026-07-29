@@ -43,9 +43,31 @@ export async function uploadPaymentImage(file: File): Promise<string> {
   return data.publicUrl
 }
 
+export async function uploadPaymentImages(files: File[]): Promise<string[]> {
+  const urls: string[] = []
+  try {
+    for (const file of files) {
+      urls.push(await uploadPaymentImage(file))
+    }
+    return urls
+  } catch (e) {
+    await deletePaymentImages(urls)
+    throw e
+  }
+}
+
 export async function deletePaymentImage(url: string | null | undefined) {
   const path = paymentImageStoragePath(url)
   if (!path) return
   const { error } = await supabase.storage.from(PAYMENT_RECEIPTS_BUCKET).remove([path])
   if (error) console.warn('Failed to delete payment image:', error.message)
+}
+
+export async function deletePaymentImages(urls: (string | null | undefined)[]) {
+  const paths = urls
+    .map(paymentImageStoragePath)
+    .filter((p): p is string => Boolean(p))
+  if (paths.length === 0) return
+  const { error } = await supabase.storage.from(PAYMENT_RECEIPTS_BUCKET).remove(paths)
+  if (error) console.warn('Failed to delete payment images:', error.message)
 }

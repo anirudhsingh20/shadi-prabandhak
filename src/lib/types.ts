@@ -66,7 +66,7 @@ export interface BudgetPayment {
   status: BudgetPaymentStatus
   due_date: string | null
   notes: string | null
-  image_url: string | null
+  image_urls: string[]
   created_at: string
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CalendarDays, Camera, ImagePlus, StickyNote, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ImageLightbox } from '@/components/ImageLightbox'
 import {
   Form,
   FormControl,
@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { assertPaymentImageFile } from '@/lib/payment-image'
-import { cn } from '@/lib/utils'
+import { cn, formatAmountInWords } from '@/lib/utils'
 import { budgetPaymentSchema, type BudgetPaymentInput } from '@/lib/validations'
 import type { BudgetCategory, BudgetPaymentStatus } from '@/lib/types'
 
@@ -39,32 +39,47 @@ const STATUS_OPTIONS: {
   },
 ]
 
+type LocalImage = {
+  key: string
+  previewUrl: string
+  source: 'existing' | 'new'
+  url?: string
+  file?: File
+}
+
 export type PaymentImageChange = {
-  file: File | null
-  remove: boolean
+  files: File[]
+  keptUrls: string[]
 }
 
 export function PaymentForm({
   categories,
   defaultValues,
-  existingImageUrl,
+  existingImageUrls,
   onSubmit,
-  submitLabel,
   formId = 'payment-form',
+  onSubmittingChange,
 }: {
   categories: BudgetCategory[]
   defaultValues?: Partial<BudgetPaymentInput>
-  existingImageUrl?: string | null
+  existingImageUrls?: string[]
   onSubmit: (values: BudgetPaymentInput, image: PaymentImageChange) => Promise<void>
-  submitLabel: string
   formId?: string
+  onSubmittingChange?: (submitting: boolean) => void
 }) {
   const galleryRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(existingImageUrl ?? null)
-  const [removeImage, setRemoveImage] = useState(false)
+  const blobUrlsRef = useRef<string[]>([])
+  const [images, setImages] = useState<LocalImage[]>(() =>
+    (existingImageUrls ?? []).map((url) => ({
+      key: url,
+      previewUrl: url,
+      source: 'existing' as const,
+      url,
+    })),
+  )
   const [imageError, setImageError] = useState<string | null>(null)
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
 
   const form = useForm<BudgetPaymentInput>({
     resolver: zodResolver(budgetPaymentSchema),
@@ -78,30 +93,51 @@ export function PaymentForm({
       ...defaultValues,
     },
   })
+  useEffect(() => {
+    const submitting = form.formState.isSubmitting
+    onSubmittingChange?.(submitting)
+  }, [form.formState.isSubmitting, onSubmittingChange])
 
   useEffect(() => {
-    if (!imageFile) return
-    const url = URL.createObjectURL(imageFile)
-    setPreviewUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [imageFile])
-
-  const pickFile = (file: File | undefined) => {
-    setImageError(null)
-    if (!file) return
-    try {
-      assertPaymentImageFile(file)
-      setImageFile(file)
-      setRemoveImage(false)
-    } catch (e) {
-      setImageError(e instanceof Error ? e.message : 'Invalid image')
+    const blobs = blobUrlsRef.current
+    return () => {
+      for (const url of blobs) URL.revokeObjectURL(url)
     }
+  }, [])
+
+  const pickFiles = (fileList: FileList | null) => {
+    setImageError(null)
+    if (!fileList?.length) return
+
+    const next: LocalImage[] = []
+    for (const file of Array.from(fileList)) {
+      try {
+        assertPaymentImageFile(file)
+        const previewUrl = URL.createObjectURL(file)
+        blobUrlsRef.current.push(previewUrl)
+        next.push({
+          key: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
+          previewUrl,
+          source: 'new',
+          file,
+        })
+      } catch (e) {
+        setImageError(e instanceof Error ? e.message : 'Invalid image')
+        return
+      }
+    }
+    setImages((prev) => [...prev, ...next])
   }
 
-  const clearImage = () => {
-    setImageFile(null)
-    setPreviewUrl(null)
-    setRemoveImage(true)
+  const removeImage = (key: string) => {
+    setImages((prev) => {
+      const target = prev.find((img) => img.key === key)
+      if (target?.source === 'new') {
+        URL.revokeObjectURL(target.previewUrl)
+        blobUrlsRef.current = blobUrlsRef.current.filter((u) => u !== target.previewUrl)
+      }
+      return prev.filter((img) => img.key !== key)
+    })
     setImageError(null)
     if (galleryRef.current) galleryRef.current.value = ''
     if (cameraRef.current) cameraRef.current.value = ''
@@ -112,7 +148,10 @@ export function PaymentForm({
       <form
         id={formId}
         onSubmit={form.handleSubmit((values) =>
-          onSubmit(values, { file: imageFile, remove: removeImage }),
+          onSubmit(values, {
+            files: images.flatMap((img) => (img.file ? [img.file] : [])),
+            keptUrls: images.flatMap((img) => (img.url ? [img.url] : [])),
+          }),
         )}
         className="space-y-4"
       >
@@ -120,38 +159,46 @@ export function PaymentForm({
         <FormField
           control={form.control}
           name="amount"
-          render={({ field }) => (
+          render={({ field }) => {
+            const amountWords = formatAmountInWords(Number(field.value))
+            return (
             <FormItem className="space-y-0.5">
               <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Amount</p>
               <FormControl>
-                <div className="flex items-baseline gap-1 border-b border-gold/30 pb-1.5">
-                  <span className="font-display text-xl font-semibold text-gold/80">₹</span>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    placeholder="0"
-                    className="h-auto border-0 bg-transparent px-0 text-left font-display text-3xl font-semibold tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    name={field.name}
-                    ref={field.ref}
-                    onBlur={field.onBlur}
-                    value={
-                      field.value === undefined ||
-                      field.value === null ||
-                      Number.isNaN(Number(field.value))
-                        ? ''
-                        : field.value
-                    }
-                    onChange={(e) => {
-                      const raw = e.target.value
-                      field.onChange(raw === '' ? undefined : Number(raw))
-                    }}
-                  />
+                <div>
+                  <div className="flex items-baseline gap-1 border-b border-gold/30 pb-1">
+                    <span className="font-display text-xl font-semibold leading-none text-gold/80">₹</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      placeholder="0"
+                      className="h-auto min-h-0 border-0 bg-transparent px-0 py-0 text-left font-display text-3xl font-semibold leading-none tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={
+                        field.value === undefined ||
+                        field.value === null ||
+                        Number.isNaN(Number(field.value))
+                          ? ''
+                          : field.value
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        field.onChange(raw === '' ? undefined : Number(raw))
+                      }}
+                    />
+                  </div>
+                  {amountWords ? (
+                    <p className="pt-1.5 text-[11px] leading-snug text-gold/70">{amountWords}</p>
+                  ) : null}
                 </div>
               </FormControl>
               <FormMessage />
             </FormItem>
-          )}
+            )
+          }}
         />
 
         {/* Description */}
@@ -180,7 +227,7 @@ export function PaymentForm({
             <FormItem className="space-y-1.5">
               <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Status</p>
               <FormControl>
-                <div className="grid grid-cols-3 gap-1">
+                <div className="flex flex-wrap gap-1">
                   {STATUS_OPTIONS.map((opt) => {
                     const active = field.value === opt.value
                     return (
@@ -189,7 +236,7 @@ export function PaymentForm({
                         type="button"
                         onClick={() => field.onChange(opt.value)}
                         className={cn(
-                          'rounded-full border py-1 text-[11px] font-semibold transition-colors',
+                          'rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors',
                           active
                             ? opt.active
                             : 'border-gold/25 bg-white/[0.03] text-white/65 hover:bg-white/[0.06]',
@@ -255,16 +302,19 @@ export function PaymentForm({
           )}
         />
 
-        {/* Receipt image */}
+        {/* Receipt images */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Receipt</p>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
+            Receipts{images.length > 0 ? ` · ${images.length}` : ''}
+          </p>
           <input
             ref={galleryRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
             onChange={(e) => {
-              pickFile(e.target.files?.[0])
+              pickFiles(e.target.files)
               e.target.value = ''
             }}
           />
@@ -275,47 +325,74 @@ export function PaymentForm({
             capture="environment"
             className="hidden"
             onChange={(e) => {
-              pickFile(e.target.files?.[0])
+              pickFiles(e.target.files)
               e.target.value = ''
             }}
           />
 
-          {previewUrl ? (
-            <div className="relative overflow-hidden rounded-md border border-gold/20">
-              <img
-                src={previewUrl}
-                alt="Receipt"
-                className="max-h-44 w-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={clearImage}
-                className="absolute right-1.5 top-1.5 rounded-full bg-black/65 p-1 text-white/90 hover:bg-black/80"
-                aria-label="Remove image"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                type="button"
-                onClick={() => cameraRef.current?.click()}
-                className="flex items-center justify-center gap-1.5 rounded-md border border-gold/25 bg-white/[0.03] px-2 py-2.5 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/[0.06]"
-              >
-                <Camera className="h-3.5 w-3.5 text-gold/80" aria-hidden />
-                Camera
-              </button>
-              <button
-                type="button"
-                onClick={() => galleryRef.current?.click()}
-                className="flex items-center justify-center gap-1.5 rounded-md border border-gold/25 bg-white/[0.03] px-2 py-2.5 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/[0.06]"
-              >
-                <ImagePlus className="h-3.5 w-3.5 text-gold/80" aria-hidden />
-                Upload
-              </button>
+          {images.length > 0 && (
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+              {images.map((img, index) => (
+                <div key={img.key} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewerIndex(index)}
+                    className="block overflow-hidden rounded-md border border-gold/20 bg-black/20 transition-colors hover:border-gold/40"
+                    aria-label={`View receipt ${index + 1}`}
+                  >
+                    <img
+                      src={img.previewUrl}
+                      alt={`Receipt ${index + 1}`}
+                      className="max-h-28 w-auto object-contain"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      removeImage(img.key)
+                    }}
+                    className="absolute right-1 top-1 rounded-full bg-black/65 p-1 text-white/90 hover:bg-black/80"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
+
+          <ImageLightbox
+            images={images.map((img, index) => ({
+              src: img.previewUrl,
+              alt: `Receipt ${index + 1}`,
+            }))}
+            open={viewerIndex !== null}
+            index={viewerIndex ?? 0}
+            onOpenChange={(open) => {
+              if (!open) setViewerIndex(null)
+            }}
+            onIndexChange={setViewerIndex}
+          />
+
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-gold/25 bg-white/[0.03] px-2 py-2.5 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/[0.06]"
+            >
+              <Camera className="h-3.5 w-3.5 text-gold/80" aria-hidden />
+              Camera
+            </button>
+            <button
+              type="button"
+              onClick={() => galleryRef.current?.click()}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-gold/25 bg-white/[0.03] px-2 py-2.5 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/[0.06]"
+            >
+              <ImagePlus className="h-3.5 w-3.5 text-gold/80" aria-hidden />
+              Upload
+            </button>
+          </div>
           {imageError && <p className="text-[11px] text-destructive">{imageError}</p>}
         </div>
 
@@ -368,10 +445,6 @@ export function PaymentForm({
             )}
           />
         </div>
-
-        <Button type="submit" className="h-9 w-full text-sm" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Saving…' : submitLabel}
-        </Button>
       </form>
     </Form>
   )

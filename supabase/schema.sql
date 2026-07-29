@@ -82,7 +82,7 @@ create table if not exists budget_payments (
   status text not null check (status in ('done', 'pending', 'may_come')),
   due_date date,
   notes text,
-  image_url text,
+  image_urls text[] not null default '{}',
   created_at timestamptz not null default now()
 );
 

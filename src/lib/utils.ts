@@ -32,3 +32,33 @@ export function formatCurrencyCompact(amount: number): string {
   }
   return `${sign}₹${abs.toLocaleString('en-IN')}`
 }
+
+/** Indian-style amount breakdown, e.g. 120000 → "1 Lakh · 20 Thousand". */
+export function formatAmountInWords(amount: number): string | null {
+  const n = Math.floor(Number(amount))
+  if (!Number.isFinite(n) || n <= 0) return null
+
+  let rem = n
+  const major: string[] = []
+
+  const crore = Math.floor(rem / 1_00_00_000)
+  rem %= 1_00_00_000
+  const lakh = Math.floor(rem / 1_00_000)
+  rem %= 1_00_000
+  const thousand = Math.floor(rem / 1_000)
+  rem %= 1_000
+  const hundred = Math.floor(rem / 100)
+  rem %= 100
+
+  if (crore > 0) major.push(`${crore} Crore`)
+  if (lakh > 0) major.push(`${lakh} Lakh`)
+  if (thousand > 0) major.push(`${thousand} Thousand`)
+  if (hundred > 0) major.push(`${hundred} Hundred`)
+
+  const suffix = n === 1 ? ' rupee' : ' rupees'
+
+  if (major.length === 0) return rem > 0 ? `${rem.toLocaleString('en-IN')}${suffix}` : null
+  if (rem > 0) return `${major.join(' · ')} and ${rem.toLocaleString('en-IN')}${suffix}`
+
+  return `${major.join(' · ')}${suffix}`
+}

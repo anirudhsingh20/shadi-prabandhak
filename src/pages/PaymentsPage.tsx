@@ -23,7 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PAYMENT_STATUS_LABEL, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
-import { deletePaymentImage, uploadPaymentImage } from '@/lib/payment-image'
+import {
+  deletePaymentImages,
+  uploadPaymentImages,
+} from '@/lib/payment-image'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BudgetPaymentInput } from '@/lib/validations'
@@ -185,9 +188,9 @@ function ExpenseRow({
       onClick={onOpen}
       className="flex w-full items-center gap-3 px-1 py-2.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.06]"
     >
-      {payment.image_url ? (
+      {payment.image_urls?.[0] ? (
         <img
-          src={payment.image_url}
+          src={payment.image_urls[0]}
           alt=""
           className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"
         />
@@ -226,6 +229,7 @@ export function PaymentsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editPay, setEditPay] = useState<BudgetPayment | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [formSubmitting, setFormSubmitting] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('date_desc')
@@ -353,7 +357,7 @@ export function PaymentsPage() {
       const payment = payments.find((p) => p.id === id)
       const { error } = await supabase.from('budget_payments').delete().eq('id', id)
       if (error) throw error
-      if (payment?.image_url) await deletePaymentImage(payment.image_url)
+      if (payment?.image_urls?.length) await deletePaymentImages(payment.image_urls)
       if (payment?.category_id) await syncCategorySpent(WEDDING_ID, [payment.category_id])
     },
     onSuccess: () => {
@@ -372,16 +376,14 @@ export function PaymentsPage() {
   ) => {
     const prev = id ? payments.find((p) => p.id === id) : null
     const categoryId = values.category_id || null
+    const prevUrls = prev?.image_urls ?? []
+    const removedUrls = prevUrls.filter((url) => !image.keptUrls.includes(url))
 
-    let imageUrl = prev?.image_url ?? null
-    if (image.file) {
-      const uploaded = await uploadPaymentImage(image.file)
-      if (prev?.image_url) await deletePaymentImage(prev.image_url)
-      imageUrl = uploaded
-    } else if (image.remove) {
-      if (prev?.image_url) await deletePaymentImage(prev.image_url)
-      imageUrl = null
+    let uploadedUrls: string[] = []
+    if (image.files.length) {
+      uploadedUrls = await uploadPaymentImages(image.files)
     }
+    const imageUrls = [...image.keptUrls, ...uploadedUrls]
 
     const payload = {
       title: values.title,
@@ -390,19 +392,19 @@ export function PaymentsPage() {
       category_id: categoryId,
       due_date: values.due_date || null,
       notes: values.notes || null,
-      image_url: imageUrl,
+      image_urls: imageUrls,
       wedding_id: WEDDING_ID,
     }
     const { error } = id
       ? await supabase.from('budget_payments').update(payload).eq('id', id)
       : await supabase.from('budget_payments').insert(payload)
     if (error) {
-      // Don't orphan a newly uploaded image if the row write fails
-      if (image.file && imageUrl && imageUrl !== prev?.image_url) {
-        await deletePaymentImage(imageUrl)
-      }
+      // Don't orphan newly uploaded images if the row write fails
+      if (uploadedUrls.length) await deletePaymentImages(uploadedUrls)
       throw new Error(error.message)
     }
+
+    if (removedUrls.length) await deletePaymentImages(removedUrls)
 
     const toSync = [categoryId, prev?.category_id].filter(Boolean) as string[]
     if (toSync.length) await syncCategorySpent(WEDDING_ID, toSync)
@@ -629,14 +631,28 @@ export function PaymentsPage() {
 
       <PaymentDrawerShell
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open)
+          if (!open) setFormSubmitting(false)
+        }}
         title="Add an expense"
         description="Log a new wedding payment."
+        footer={
+          <Button
+            type="submit"
+            form="payment-form-create"
+            className="h-9 w-full text-sm"
+            disabled={formSubmitting}
+          >
+            {formSubmitting ? 'Saving…' : 'Save'}
+          </Button>
+        }
       >
         <PaymentForm
           key={createOpen ? 'create-open' : 'create-closed'}
+          formId="payment-form-create"
           categories={categories}
-          submitLabel="Save"
+          onSubmittingChange={setFormSubmitting}
           onSubmit={async (v, image) => {
             try {
               await savePayment(v, image)
@@ -650,28 +666,44 @@ export function PaymentsPage() {
 
       <PaymentDrawerShell
         open={!!editPay}
-        onOpenChange={(o) => !o && setEditPay(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditPay(null)
+            setFormSubmitting(false)
+          }
+        }}
         title="Edit expense"
         description="Update or delete this payment."
         footer={
           editPay ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="border-destructive/40 text-destructive hover:bg-destructive/10"
-              onClick={() => setDeleteId(editPay.id)}
-            >
-              <Trash2 className="mr-1.5 h-4 w-4" /> Delete expense
-            </Button>
+            <div className="flex w-full gap-2">
+              <Button
+                type="submit"
+                form="payment-form-edit"
+                className="h-9 flex-1 text-sm"
+                disabled={formSubmitting}
+              >
+                {formSubmitting ? 'Saving…' : 'Save'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteId(editPay.id)}
+              >
+                <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+              </Button>
+            </div>
           ) : null
         }
       >
         {editPay && (
           <PaymentForm
             key={editPay.id}
+            formId="payment-form-edit"
             categories={categories}
-            submitLabel="Save"
-            existingImageUrl={editPay.image_url}
+            onSubmittingChange={setFormSubmitting}
+            existingImageUrls={editPay.image_urls ?? []}
             defaultValues={{
               title: editPay.title,
               amount: Number(editPay.amount),
