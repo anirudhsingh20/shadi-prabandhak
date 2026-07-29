@@ -148,7 +148,7 @@ function NotionCheckbox({
         onChange()
       }}
       className={cn(
-        'mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border transition-colors',
+        'mt-0.5 flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-[3px] border transition-colors',
         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/60',
         checked
           ? 'border-gold bg-gold text-gold-foreground'
@@ -156,7 +156,7 @@ function NotionCheckbox({
         disabled && 'opacity-50',
       )}
     >
-      <Check className="h-3 w-3 stroke-[3]" aria-hidden />
+      <Check className="h-2.5 w-2.5 stroke-[3]" aria-hidden />
     </button>
   )
 }
