@@ -38,7 +38,6 @@ const primaryTabs: TabItem[] = [
 ]
 
 const moreItems: TabItem[] = [
-  { to: '/guests-classic', label: 'Guests classic', icon: Users },
   { to: '/family-tree', label: 'Family tree', icon: GitFork },
   { to: '/events', label: 'Events', icon: CalendarDays },
   { to: '/budget', label: 'Budget', icon: IndianRupee },
@@ -58,7 +57,7 @@ export function AppShell() {
   return (
     <div className="wedding-bg flex min-h-dvh justify-center">
       <div className="wedding-shell flex w-full max-w-[430px] flex-col border-x border-gold/40 shadow-[0_0_48px_rgba(212,168,83,0.14)]">
-        <main className="relative flex-1 px-4 py-5 pb-24">
+        <main className="relative flex-1 px-4 py-3 pb-24">
           <Outlet />
         </main>
 

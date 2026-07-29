@@ -14,15 +14,6 @@ export const eventSchema = z.object({
   sort_order: z.coerce.number().int().min(0).default(0),
 })
 
-export const guestSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  side: z.enum(['bride', 'groom', 'common']),
-  rsvp_status: z.enum(['confirmed', 'pending', 'declined']),
-  headcount: z.coerce.number().int().min(1, 'At least 1').max(99),
-  events_attending: z.string().optional(),
-  notes: z.string().optional(),
-})
-
 export const budgetCategorySchema = z.object({
   name: z.string().min(2, 'Name is required'),
   allocated: z.coerce.number().min(0, 'Must be 0 or more'),
@@ -61,10 +52,10 @@ export const vendorSchema = z.object({
 })
 
 export const checklistItemSchema = z.object({
-  group_label: z.string().min(2, 'Group is required'),
+  group_label: z.string().optional().or(z.literal('')),
   title: z.string().min(2, 'Title is required'),
   due_label: z.string().optional(),
-  status: z.enum(['done', 'next', 'later']),
+  priority: z.enum(['high', 'medium', 'low']),
   sort_order: z.coerce.number().int().min(0).default(0),
 })
 
@@ -75,7 +66,6 @@ export const decisionSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>
 export type EventInput = z.infer<typeof eventSchema>
-export type GuestInput = z.infer<typeof guestSchema>
 export type BudgetCategoryInput = z.infer<typeof budgetCategorySchema>
 export type MoneyInBankInput = z.infer<typeof moneyInBankSchema>
 export type TotalBudgetInput = z.infer<typeof totalBudgetSchema>

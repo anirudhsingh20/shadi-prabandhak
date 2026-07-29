@@ -4,6 +4,7 @@ export type GuestSide = 'bride' | 'groom' | 'common'
 export type GuestRelation = string
 export type VendorStatus = 'booked' | 'shortlisted'
 export type ChecklistStatus = 'done' | 'next' | 'later'
+export type ChecklistPriority = 'high' | 'medium' | 'low'
 export type BudgetPaymentStatus = 'done' | 'pending' | 'may_come'
 export interface Wedding {
   id: string
@@ -108,6 +109,7 @@ export interface ChecklistItem {
   title: string
   due_label: string | null
   status: ChecklistStatus
+  priority: ChecklistPriority
   sort_order: number
 }
 

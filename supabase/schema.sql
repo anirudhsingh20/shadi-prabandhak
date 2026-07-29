@@ -126,6 +126,7 @@ create table if not exists checklist_items (
   title text not null,
   due_label text,
   status text not null check (status in ('done', 'next', 'later')),
+  priority text not null default 'low' check (priority in ('high', 'medium', 'low')),
   sort_order int not null default 0
 );
 

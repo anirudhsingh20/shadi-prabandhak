@@ -60,22 +60,22 @@ insert into vendors (wedding_id, type, name, phone, email, notes, status) values
 ('00000000-0000-0000-0000-000000000001', 'DJ & Music', 'Beat Box Entertainment', '+91 94321 09876', 'dj@beatbox.in', 'Sangeet + Reception', 'shortlisted'),
 ('00000000-0000-0000-0000-000000000001', 'Pandit', 'Pt. Ram Sharma', '+91 93210 98765', null, 'Vivah sanskar · Muhurat confirmed', 'booked');
 
-insert into checklist_items (wedding_id, group_label, title, due_label, status, sort_order) values
-('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Fix wedding date & muhurat with pandit', 'Done', 'done', 1),
-('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Book photographer & decorator', 'Done', 'done', 2),
-('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Finalize venue — sign contract', 'By Aug 2026', 'next', 3),
-('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Draft guest list (both families)', 'By Aug 2026', 'next', 4),
-('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Shortlist caterers — tasting session', 'Sep 2026', 'later', 5),
-('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Send save-the-date / digital invites', 'Sep 2026', 'later', 6),
-('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Book mehendi artist & makeup trial', 'Sep 2026', 'later', 7),
-('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Finalize outfits — bride, groom, family', 'Oct 2026', 'later', 8),
-('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Sangeet choreography & song list', 'Oct 2026', 'later', 9),
-('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Confirm DJ, dhol, and baraat route', 'Oct 2026', 'later', 10),
-('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Final headcount to caterer', '1 week before', 'later', 11),
-('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Vendor walkthrough at venue', '3 days before', 'later', 12),
-('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Mehendi & Haldi prep — supplies, seating', '2 days before', 'later', 13),
-('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Wedding day timeline — share with family & vendors', '1 day before', 'later', 14),
-('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Enjoy the celebrations!', '20 Nov 2026', 'later', 15);
+insert into checklist_items (wedding_id, group_label, title, due_label, status, priority, sort_order) values
+('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Fix wedding date & muhurat with pandit', 'Done', 'done', 'medium', 1),
+('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Book photographer & decorator', 'Done', 'done', 'medium', 2),
+('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Finalize venue — sign contract', 'By Aug 2026', 'next', 'high', 3),
+('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Draft guest list (both families)', 'By Aug 2026', 'next', 'high', 4),
+('00000000-0000-0000-0000-000000000001', 'July – August 2026', 'Shortlist caterers — tasting session', 'Sep 2026', 'later', 'medium', 5),
+('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Send save-the-date / digital invites', 'Sep 2026', 'later', 'medium', 6),
+('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Book mehendi artist & makeup trial', 'Sep 2026', 'later', 'medium', 7),
+('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Finalize outfits — bride, groom, family', 'Oct 2026', 'later', 'medium', 8),
+('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Sangeet choreography & song list', 'Oct 2026', 'later', 'low', 9),
+('00000000-0000-0000-0000-000000000001', 'September – October 2026', 'Confirm DJ, dhol, and baraat route', 'Oct 2026', 'later', 'medium', 10),
+('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Final headcount to caterer', '1 week before', 'later', 'high', 11),
+('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Vendor walkthrough at venue', '3 days before', 'later', 'medium', 12),
+('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Mehendi & Haldi prep — supplies, seating', '2 days before', 'later', 'medium', 13),
+('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Wedding day timeline — share with family & vendors', '1 day before', 'later', 'high', 14),
+('00000000-0000-0000-0000-000000000001', 'November 2026 — Wedding week', 'Enjoy the celebrations!', '20 Nov 2026', 'later', 'low', 15);
 
 insert into decisions (wedding_id, decision_date, text) values
 ('00000000-0000-0000-0000-000000000001', '2026-07-01', 'Wedding date fixed: 20 November 2026'),

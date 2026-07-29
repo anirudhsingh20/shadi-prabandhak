@@ -6,7 +6,6 @@ const links = [
   { to: '/events', title: 'Events', desc: 'Mehendi, Haldi, Sangeet, Wedding & Reception' },
   { to: '/guests', title: 'Guests', desc: 'Drawer add · bride, groom & mutual' },
   { to: '/family-tree', title: 'Family tree', desc: 'Groom, bride & mutual by relation' },
-  { to: '/guests-classic', title: 'Guests classic', desc: 'Original RSVP guest list' },
   { to: '/budget', title: 'Budget', desc: 'Bank balance, categories & charts' },
   { to: '/payments', title: 'Payments', desc: 'Splitwise-style paid, pending & may come' },
   { to: '/vendors', title: 'Vendors', desc: 'Contacts and booking status' },
