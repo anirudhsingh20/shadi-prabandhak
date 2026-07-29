@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowUpDown, History, Layers, Plus, Search, X } from 'lucide-react'
@@ -143,10 +143,8 @@ function PaymentDrawerShell({
   children: ReactNode
   footer?: ReactNode
 }) {
-  const portalHostRef = useRef<HTMLDivElement>(null)
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null)
   const setPortalHostRef = useCallback((node: HTMLDivElement | null) => {
-    portalHostRef.current = node
     setPortalHost(node)
   }, [])
 
