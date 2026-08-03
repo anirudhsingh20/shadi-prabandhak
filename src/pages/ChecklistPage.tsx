@@ -12,8 +12,6 @@ import {
   Drawer,
   DrawerContent,
   DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
 } from '@/components/ui/drawer'
 import {
   DropdownMenu,
@@ -268,14 +266,12 @@ function NotionCheckbox({
 function ChecklistDrawerShell({
   open,
   onOpenChange,
-  title,
   children,
   footer,
   onPortalHost,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  title: string
   children: ReactNode
   footer?: ReactNode
   onPortalHost: (node: HTMLDivElement | null) => void
@@ -286,11 +282,11 @@ function ChecklistDrawerShell({
       onOpenChange={onOpenChange}
       dismissible={false}
       shouldScaleBackground={false}
-      repositionInputs={false}
+      repositionInputs
       fixed
     >
       <DrawerContent
-        className="max-h-[min(88dvh,640px)] overflow-hidden"
+        className="max-h-[min(65dvh,480px)] overflow-hidden"
         onPointerDownOutside={(e) => {
           if (isSuggestMenuTarget(e.target)) e.preventDefault()
         }}
@@ -298,21 +294,8 @@ function ChecklistDrawerShell({
           if (isSuggestMenuTarget(e.target)) e.preventDefault()
         }}
       >
-        <DrawerHeader className="relative shrink-0 pr-10 text-left">
-          <DrawerTitle>{title}</DrawerTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-1 h-9 w-9 text-white/70 hover:text-gold"
-            aria-label="Close"
-            onClick={() => onOpenChange(false)}
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </DrawerHeader>
         <div ref={onPortalHost} className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-28 pt-2 [touch-action:pan-y]">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 pt-2 [touch-action:pan-y]">
             {children}
           </div>
         </div>
@@ -331,6 +314,8 @@ function ChecklistForm({
   onSubmit,
   formId = 'checklist-form',
   onSubmittingChange,
+  drawerTitle,
+  onClose,
 }: {
   defaultValues?: Partial<ChecklistItemInput>
   groupSuggestions?: string[]
@@ -338,6 +323,8 @@ function ChecklistForm({
   onSubmit: (values: ChecklistItemInput) => Promise<void>
   formId?: string
   onSubmittingChange?: (submitting: boolean) => void
+  drawerTitle: string
+  onClose: () => void
 }) {
   const form = useForm<ChecklistItemInput>({
     resolver: zodResolver(checklistItemSchema),
@@ -362,19 +349,15 @@ function ChecklistForm({
         onSubmit={form.handleSubmit(async (values) => {
           await onSubmit(values)
         })}
-        className="space-y-4"
+        className="space-y-3"
       >
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
-            <FormItem className="space-y-1">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
-                Task
-              </p>
+            <FormItem className="space-y-0">
               <FormControl>
                 <Input
-                  autoFocus
                   placeholder="What needs to get done?"
                   className="h-auto border-0 border-b border-gold/30 bg-transparent px-0 py-1.5 text-base shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
                   {...field}
@@ -384,6 +367,20 @@ function ChecklistForm({
             </FormItem>
           )}
         />
+
+        <div className="flex items-center justify-between gap-2 border-y border-gold/15 py-2">
+          <p className="font-display text-lg font-semibold tracking-wide text-gold">{drawerTitle}</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-white/70 hover:text-gold"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
         <FormField
           control={form.control}
@@ -404,7 +401,7 @@ function ChecklistForm({
                   onChange={field.onChange}
                   placeholder="e.g. July – August 2026"
                   className="border-b border-gold/30 pb-1"
-                  inputClassName="h-auto min-h-0 w-full border-0 bg-transparent px-0 py-1 text-sm shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  inputClassName="h-auto min-h-0 w-full border-0 bg-transparent px-0 py-1 text-base shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </FormControl>
               <FormMessage />
@@ -899,7 +896,6 @@ export function ChecklistPage() {
           setCreateOpen(open)
           if (!open) setFormSubmitting(false)
         }}
-        title="Add task"
         onPortalHost={setCreatePortalHostRef}
         footer={
           <Button
@@ -915,6 +911,8 @@ export function ChecklistPage() {
         <ChecklistForm
           key={createOpen ? 'create-open' : 'create-closed'}
           formId="checklist-form-create"
+          drawerTitle="Add task"
+          onClose={() => setCreateOpen(false)}
           groupSuggestions={groupSuggestions}
           portalHost={createPortalHost}
           onSubmittingChange={setFormSubmitting}
@@ -937,7 +935,6 @@ export function ChecklistPage() {
             setFormSubmitting(false)
           }
         }}
-        title="Edit task"
         onPortalHost={setEditPortalHostRef}
         footer={
           editItem ? (
@@ -966,6 +963,8 @@ export function ChecklistPage() {
           <ChecklistForm
             key={editItem.id}
             formId="checklist-form-edit"
+            drawerTitle="Edit task"
+            onClose={() => setEditItem(null)}
             groupSuggestions={groupSuggestions}
             portalHost={editPortalHost}
             onSubmittingChange={setFormSubmitting}
