@@ -33,15 +33,15 @@ type TabItem = {
 
 const primaryTabs: TabItem[] = [
   { to: '/', label: 'Home', icon: Home, end: true },
-  { to: '/guests', label: 'Guests', icon: Users },
+  { to: '/budget', label: 'Budget', icon: IndianRupee },
   { to: '/payments', label: 'Payments', icon: ListChecks },
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
 ]
 
 const moreItems: TabItem[] = [
+  { to: '/guests', label: 'Guests', icon: Users },
   { to: '/family-tree', label: 'Family tree', icon: GitFork },
   { to: '/events', label: 'Events', icon: CalendarDays },
-  { to: '/budget', label: 'Budget', icon: IndianRupee },
   { to: '/money-in-bank', label: 'Money in bank', icon: Wallet },
   { to: '/vendors', label: 'Vendors', icon: Store },
   { to: '/checklist', label: 'Checklist', icon: CheckSquare },
