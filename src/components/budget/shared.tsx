@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatAmountInWords, formatCurrency } from '@/lib/utils'
 import {
   budgetCategorySchema,
   totalBudgetSchema,
@@ -319,6 +319,7 @@ export function CategoryForm({
     resolver: zodResolver(budgetCategorySchema),
     defaultValues: { name: '', description: '', allocated: 0, sort_order: 0, ...defaultValues },
   })
+  const allocatedWords = formatAmountInWords(Number(form.watch('allocated')))
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -362,6 +363,9 @@ export function CategoryForm({
               <FormControl>
                 <Input type="number" min={0} {...field} />
               </FormControl>
+              {allocatedWords ? (
+                <p className="text-[11px] leading-snug text-gold/70">{allocatedWords}</p>
+              ) : null}
               <FormMessage />
             </FormItem>
           )}
