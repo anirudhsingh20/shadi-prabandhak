@@ -98,66 +98,64 @@ export function BankFundForm({
         })}
         className="space-y-4"
       >
-        <div className="space-y-0.5">
-          <div className="flex items-end gap-3">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem className="shrink-0 space-y-0">
-                  <FormControl>
-                    <div className="flex w-max shrink-0 items-baseline gap-0.5 border-b border-gold/30 pb-1">
-                      <span className="font-display text-lg font-semibold leading-none text-gold/80">
-                        ₹
-                      </span>
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        placeholder="0"
-                        className="h-auto min-h-0 w-[8ch] max-w-[8ch] shrink-0 border-0 bg-transparent px-0 py-0 text-left font-display text-2xl font-semibold leading-none tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
-                        name={field.name}
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        value={
-                          field.value === undefined ||
-                          field.value === null ||
-                          Number.isNaN(Number(field.value))
-                            ? ''
-                            : field.value
-                        }
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          field.onChange(raw === '' ? undefined : Number(raw))
-                        }}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="label"
-              render={({ field }) => (
-                <FormItem className="min-w-0 flex-1 space-y-0">
-                  <FormControl>
+        <div className="space-y-2">
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem className="space-y-0">
+                <FormControl>
+                  <div className="flex w-max max-w-full items-baseline gap-0.5 border-b border-gold/30 pb-1">
+                    <span className="font-display text-lg font-semibold leading-none text-gold/80">
+                      ₹
+                    </span>
                     <Input
-                      placeholder="Description (optional)"
-                      className="h-auto min-h-0 border-0 border-b border-gold/30 bg-transparent px-0 py-0 pb-1 text-sm text-white/85 shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      {...field}
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      placeholder="0"
+                      className="h-auto min-h-0 w-[10ch] max-w-full border-0 bg-transparent px-0 py-0 text-left font-display text-2xl font-semibold leading-none tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={
+                        field.value === undefined ||
+                        field.value === null ||
+                        Number.isNaN(Number(field.value))
+                          ? ''
+                          : field.value
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        field.onChange(raw === '' ? undefined : Number(raw))
+                      }}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="label"
+            render={({ field }) => (
+              <FormItem className="space-y-0">
+                <FormControl>
+                  <Input
+                    placeholder="Description (optional)"
+                    className="h-auto min-h-0 w-full border-0 border-b border-gold/30 bg-transparent px-0 py-0 pb-1 text-base text-white/85 shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           {amountWords ? (
-            <p className="pt-1.5 text-[11px] leading-snug text-gold/70">{amountWords}</p>
+            <p className="text-[11px] leading-snug text-gold/70">{amountWords}</p>
           ) : (
-            <p className="pt-1.5 text-[11px] leading-snug text-white/40">
+            <p className="text-[11px] leading-snug text-white/40">
               Leave description blank to use account and from.
             </p>
           )}
@@ -270,7 +268,7 @@ export function BankFundForm({
                 <Textarea
                   rows={2}
                   placeholder="Any extra detail"
-                  className="min-h-0 resize-none text-sm"
+                  className="min-h-0 resize-none text-base"
                   {...field}
                 />
               </FormControl>

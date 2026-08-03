@@ -263,7 +263,7 @@ export const PaymentTitleInput = forwardRef<HTMLInputElement, PaymentTitleInputP
     return (
       <div
         ref={wrapRef}
-        className={cn('relative min-w-0 flex-1 border-b border-gold/30 pb-1', className)}
+        className={cn('relative min-w-0 w-full border-b border-gold/30 pb-1', className)}
       >
         <Input
           ref={ref}
@@ -281,7 +281,7 @@ export const PaymentTitleInput = forwardRef<HTMLInputElement, PaymentTitleInputP
           aria-activedescendant={
             showMenu && activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined
           }
-          className="h-auto min-h-0 w-full min-w-0 border-0 bg-transparent px-0 py-0 text-xs shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="h-auto min-h-0 w-full min-w-0 border-0 bg-transparent px-0 py-0 text-base shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
           onFocus={() => setOpen(true)}
           onBlur={() => {
             // Delay so suggestion onClick can run first.

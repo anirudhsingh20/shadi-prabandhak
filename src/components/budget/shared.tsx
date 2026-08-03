@@ -103,6 +103,66 @@ export function DatePickerField({
   )
 }
 
+export function CompactDateField({
+  value,
+  onChange,
+  onBlur,
+  name,
+  placeholder = '—',
+}: {
+  value: string
+  onChange: (value: string) => void
+  onBlur: () => void
+  name: string
+  placeholder?: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const label = formatShortDate(value)
+
+  const openPicker = () => {
+    const el = inputRef.current
+    if (!el) return
+    if (typeof el.showPicker === 'function') el.showPicker()
+    else el.click()
+  }
+
+  return (
+    <div className="flex h-[22px] w-full items-center gap-1 border-b border-gold/30">
+      <input
+        ref={inputRef}
+        type="date"
+        name={name}
+        value={value || ''}
+        onBlur={onBlur}
+        onChange={(e) => onChange(e.target.value)}
+        className="pointer-events-none absolute h-0 w-0 opacity-0"
+        tabIndex={-1}
+        aria-hidden
+      />
+      <button
+        type="button"
+        onClick={openPicker}
+        className={cn(
+          'min-w-0 flex-1 truncate text-left text-base leading-none transition-colors',
+          value ? 'text-white/70' : 'text-white/40 hover:text-white/55',
+        )}
+      >
+        {label ?? placeholder}
+      </button>
+      {value ? (
+        <button
+          type="button"
+          aria-label="Clear date"
+          onClick={() => onChange('')}
+          className="flex shrink-0 items-center justify-center text-white/40 transition-colors hover:text-white/70"
+        >
+          <X className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export function BudgetDrawerShell({
   open,
   onOpenChange,

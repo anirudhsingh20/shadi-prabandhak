@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Camera, ImagePlus, X } from 'lucide-react'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import { PaymentCatalogChips } from '@/components/PaymentCatalogChips'
+import { CompactDateField } from '@/components/budget/shared'
 import { PaymentTitleInput } from '@/components/PaymentTitleInput'
 import {
   Form,
@@ -177,65 +178,63 @@ export function PaymentForm({
         className="space-y-4"
       >
         {/* Amount + description */}
-        <div className="space-y-0.5">
-          <div className="flex items-end gap-3">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem className="shrink-0 space-y-0">
-                  <FormControl>
-                    <div className="flex w-max shrink-0 items-baseline gap-0.5 border-b border-gold/30 pb-1">
-                      <span className="font-display text-lg font-semibold leading-none text-gold/80">₹</span>
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        placeholder="0"
-                        className="h-auto min-h-0 w-[8ch] max-w-[8ch] shrink-0 border-0 bg-transparent px-0 py-0 text-left font-display text-2xl font-semibold leading-none tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
-                        name={field.name}
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        value={
-                          field.value === undefined ||
-                          field.value === null ||
-                          Number.isNaN(Number(field.value))
-                            ? ''
-                            : field.value
-                        }
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          field.onChange(raw === '' ? undefined : Number(raw))
-                        }}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem className="min-w-0 flex-1 space-y-0">
-                  <FormControl>
-                    <PaymentTitleInput
-                      suggestions={titleSuggestions}
+        <div className="space-y-2">
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem className="space-y-0">
+                <FormControl>
+                  <div className="flex w-full items-baseline gap-0.5 border-b border-gold/30 pb-1">
+                    <span className="shrink-0 font-display text-base font-semibold leading-none text-gold/80">₹</span>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      placeholder="0"
+                      className="h-auto min-h-0 min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-left font-display text-xl font-semibold leading-none tabular-nums text-gold shadow-none placeholder:text-gold/30 focus-visible:ring-0 focus-visible:ring-offset-0"
                       name={field.name}
                       ref={field.ref}
-                      value={field.value ?? ''}
                       onBlur={field.onBlur}
-                      onChange={field.onChange}
+                      value={
+                        field.value === undefined ||
+                        field.value === null ||
+                        Number.isNaN(Number(field.value))
+                          ? ''
+                          : field.value
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        field.onChange(raw === '' ? undefined : Number(raw))
+                      }}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem className="space-y-0">
+                <FormControl>
+                  <PaymentTitleInput
+                    suggestions={titleSuggestions}
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ''}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           {amountWords ? (
-            <p className="pt-1.5 text-[11px] leading-snug text-gold/70">{amountWords}</p>
+            <p className="text-[11px] leading-snug text-gold/70">{amountWords}</p>
           ) : null}
         </div>
 
@@ -283,10 +282,11 @@ export function PaymentForm({
               render={({ field }) => (
                 <FormItem className="space-y-0">
                   <FormControl>
-                    <Input
-                      type="date"
-                      className="h-[22px] w-full border-0 bg-transparent p-0 text-[11px] leading-none text-white/70 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:h-3.5 [&::-webkit-calendar-picker-indicator]:w-3.5 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80"
-                      {...field}
+                    <CompactDateField
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />
@@ -486,7 +486,7 @@ export function PaymentForm({
                 <Textarea
                   rows={2}
                   placeholder="Optional…"
-                  className="min-h-[2.5rem] resize-none border-0 border-b border-gold/20 bg-transparent px-0 py-1 text-xs shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="min-h-[2.5rem] resize-none border-0 border-b border-gold/20 bg-transparent px-0 py-1 text-base shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
                   {...field}
                 />
               </FormControl>
