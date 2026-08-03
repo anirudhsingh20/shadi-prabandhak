@@ -738,8 +738,11 @@ export function HomePage() {
             </div>
             {budgetInsight.totalBudget > 0 ? (
               <div className="mt-1 flex items-center gap-2">
-                <Progress value={budgetInsight.usedPct} className="h-0.5 flex-1" />
-                <span className="shrink-0 text-[10px] tabular-nums text-white/40">
+                <Progress
+                  value={budgetInsight.usedPct}
+                  className="h-1 flex-1 bg-emerald-400/15 [&>div]:bg-emerald-400"
+                />
+                <span className="shrink-0 text-[10px] tabular-nums text-emerald-400">
                   {Math.round(budgetInsight.usedPct)}%
                 </span>
               </div>
