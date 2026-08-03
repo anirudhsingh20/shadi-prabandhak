@@ -26,7 +26,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import { sumPaymentsByStatus } from '@/lib/budget'
-import { sumFundsByAvailability } from '@/lib/bankFunds'
+import { sumFundsByAvailability, buildFundTimeline } from '@/lib/bankFunds'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { decisionSchema, type DecisionInput } from '@/lib/validations'
 import type {
@@ -463,7 +463,8 @@ export function HomePage() {
     },
   })
 
-  const budgetLoading = weddingLoading || paymentsLoading || bankFundsLoading
+  const budgetLoading = weddingLoading || paymentsLoading
+  const bankLoading = bankFundsLoading
 
   const { data: makers = [] } = useQuery({
     queryKey: ['payment_makers'],
@@ -519,21 +520,42 @@ export function HomePage() {
   const budgetInsight = useMemo(() => {
     const totalBudget = Number(wedding?.total_budget) || 0
     const paymentTotals = sumPaymentsByStatus(payments)
-    const fundTotals = sumFundsByAvailability(bankFunds)
     const budgetLeft = totalBudget - paymentTotals.paid
     const moneyRequired = paymentTotals.pending + paymentTotals.mayCome
     const usedPct =
       totalBudget > 0 ? Math.min(100, (paymentTotals.paid / totalBudget) * 100) : 0
+    const allocated = categories.reduce((s, c) => s + Number(c.allocated), 0)
     return {
-      inBankNow: fundTotals.now,
       budgetLeft,
       moneyRequired,
       totalBudget,
+      allocated,
       usedPct,
       ...paymentTotals,
-      scheduledInBank: fundTotals.scheduled,
     }
-  }, [wedding, payments, bankFunds])
+  }, [wedding, payments, categories])
+
+  const categoryBudgetItems = useMemo(() => {
+    return [...categories]
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        allocated: Number(c.allocated),
+      }))
+  }, [categories])
+
+  const bankInsight = useMemo(() => {
+    const totals = sumFundsByAvailability(bankFunds)
+    const timeline = buildFundTimeline(bankFunds)
+    const lastPoint = timeline[timeline.length - 1]
+    const withScheduledTotal = totals.now + totals.scheduled
+    const withExpectedTotal = lastPoint?.withExpectedTotal ?? totals.now
+    const showScheduled = totals.scheduled > 0
+    const showExpected =
+      totals.expected > 0 || withExpectedTotal > withScheduledTotal
+    return { totals, withScheduledTotal, withExpectedTotal, showScheduled, showExpected }
+  }, [bankFunds])
 
   const { data: events = [], isLoading: eventsLoading } = useQuery({
     queryKey: ['events'],
@@ -674,70 +696,128 @@ export function HomePage() {
         {budgetLoading ? (
           <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
         ) : (
-          <div className="mt-0.5 overflow-hidden rounded-md border border-gold/25 bg-white/[0.03]">
-            <Link
-              to="/budget"
-              className="block border-b border-gold/15 px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
-            >
-              <p className="text-[11px] uppercase tracking-wide text-white/45">Total budget</p>
-              <p
-                className="font-display text-lg font-semibold leading-none tabular-nums text-gold"
-                title={formatCurrency(budgetInsight.totalBudget)}
-              >
-                {formatCurrencyCompact(budgetInsight.totalBudget)}
-              </p>
-            </Link>
-            <div className="grid grid-cols-2 divide-x divide-gold/15 border-b border-gold/15">
-              <Link
-                to="/money-in-bank"
-                className="px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
-              >
-                <p className="text-[11px] uppercase tracking-wide text-white/45">In bank now</p>
-                <p
-                  className="font-display text-base font-semibold leading-none tabular-nums text-emerald-400"
-                  title={formatCurrency(budgetInsight.inBankNow)}
+          <Link
+            to="/budget"
+            className="mt-0.5 block rounded-md border border-gold/25 bg-white/[0.03] px-3 py-2 transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="min-w-0 shrink-0">
+                <span className="text-[11px] text-white/45">Total </span>
+                <span
+                  className="font-display text-base font-semibold tabular-nums text-gold"
+                  title={formatCurrency(budgetInsight.totalBudget)}
                 >
-                  {formatCurrencyCompact(budgetInsight.inBankNow)}
-                </p>
-              </Link>
-              <Link
-                to="/payments"
-                className="px-3 py-2.5 text-right transition-colors hover:bg-white/[0.04]"
-              >
-                <p className="text-[11px] uppercase tracking-wide text-white/45">Money required</p>
-                <p
-                  className="font-display text-base font-semibold leading-none tabular-nums text-amber-300"
+                  {formatCurrencyCompact(budgetInsight.totalBudget)}
+                </span>
+              </p>
+              <p className="min-w-0 flex-1 px-1 text-center text-[11px] leading-tight">
+                <span className="text-white/45">Paid </span>
+                <span
+                  className="font-medium tabular-nums text-emerald-400"
+                  title={formatCurrency(budgetInsight.paid)}
+                >
+                  {formatCurrencyCompact(budgetInsight.paid)}
+                </span>
+                <span className="text-white/45"> · Left </span>
+                <span
+                  className="font-medium tabular-nums text-white/85"
+                  title={formatCurrency(budgetInsight.budgetLeft)}
+                >
+                  {formatCurrencyCompact(budgetInsight.budgetLeft)}
+                </span>
+              </p>
+              <p className="min-w-0 shrink-0 text-right">
+                <span className="text-[11px] text-white/45">Required </span>
+                <span
+                  className="font-display text-base font-semibold tabular-nums text-amber-300"
                   title={formatCurrency(budgetInsight.moneyRequired)}
                 >
                   {formatCurrencyCompact(budgetInsight.moneyRequired)}
-                </p>
-              </Link>
+                </span>
+              </p>
             </div>
-            <Link
-              to="/budget"
-              className="block px-3 py-2 transition-colors hover:bg-white/[0.04]"
-            >
-              <p className="truncate text-[12px] text-white/45">
-                Paid {formatCurrencyCompact(budgetInsight.paid)} · Left{' '}
-                {formatCurrencyCompact(budgetInsight.budgetLeft)}
-                {budgetInsight.pending > 0
-                  ? ` · Pending ${formatCurrencyCompact(budgetInsight.pending)}`
+            {budgetInsight.totalBudget > 0 ? (
+              <div className="mt-1 flex items-center gap-2">
+                <Progress value={budgetInsight.usedPct} className="h-0.5 flex-1" />
+                <span className="shrink-0 text-[10px] tabular-nums text-white/40">
+                  {Math.round(budgetInsight.usedPct)}%
+                </span>
+              </div>
+            ) : null}
+            {categoryBudgetItems.length > 0 ? (
+              <p className="mt-0.5 text-[11px] leading-snug text-white/50">
+                {categoryBudgetItems.map((c, i) => (
+                  <span key={c.id}>
+                    {i > 0 ? ' · ' : ''}
+                    {c.name}{' '}
+                    <span
+                      className="font-medium tabular-nums text-gold/90"
+                      title={formatCurrency(c.allocated)}
+                    >
+                      {formatCurrencyCompact(c.allocated)}
+                    </span>
+                  </span>
+                ))}
+              </p>
+            ) : null}
+          </Link>
+        )}
+      </section>
+
+      <section>
+        <SectionNav to="/money-in-bank" title="Money in bank" />
+        {bankLoading ? (
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
+        ) : (
+          <Link
+            to="/money-in-bank"
+            className="mt-0.5 block rounded-md border border-gold/25 bg-white/[0.03] px-3 py-2 transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
+          >
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <p>
+                <span className="text-[11px] text-white/45">Now </span>
+                <span
+                  className="font-display text-base font-semibold tabular-nums text-emerald-400"
+                  title={formatCurrency(bankInsight.totals.now)}
+                >
+                  {formatCurrencyCompact(bankInsight.totals.now)}
+                </span>
+              </p>
+              {bankInsight.showScheduled ? (
+                <p>
+                  <span className="text-[11px] text-white/45">+Scheduled </span>
+                  <span
+                    className="font-display text-base font-semibold tabular-nums text-amber-300"
+                    title={formatCurrency(bankInsight.withScheduledTotal)}
+                  >
+                    {formatCurrencyCompact(bankInsight.withScheduledTotal)}
+                  </span>
+                </p>
+              ) : null}
+              {bankInsight.showExpected ? (
+                <p>
+                  <span className="text-[11px] text-white/45">+Expected </span>
+                  <span
+                    className="font-display text-base font-semibold tabular-nums text-white/85"
+                    title={formatCurrency(bankInsight.withExpectedTotal)}
+                  >
+                    {formatCurrencyCompact(bankInsight.withExpectedTotal)}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+            {bankInsight.totals.scheduled > 0 || bankInsight.totals.expected > 0 ? (
+              <p className="mt-0.5 text-[12px] text-white/45">
+                {bankInsight.totals.scheduled > 0
+                  ? `${formatCurrencyCompact(bankInsight.totals.scheduled)} scheduled`
                   : ''}
-                {budgetInsight.scheduledInBank > 0
-                  ? ` · Scheduled ${formatCurrencyCompact(budgetInsight.scheduledInBank)}`
+                {bankInsight.totals.scheduled > 0 && bankInsight.totals.expected > 0 ? ' · ' : ''}
+                {bankInsight.totals.expected > 0
+                  ? `${formatCurrencyCompact(bankInsight.totals.expected)} expected`
                   : ''}
               </p>
-              {budgetInsight.totalBudget > 0 ? (
-                <div className="mt-1.5">
-                  <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-white/40">
-                    <span>Budget used</span>
-                    <span className="tabular-nums">{Math.round(budgetInsight.usedPct)}%</span>
-                  </div>
-                  <Progress value={budgetInsight.usedPct} className="h-1" />
-                </div>
-              ) : null}
-            </Link>
-          </div>
+            ) : null}
+          </Link>
         )}
       </section>
 
