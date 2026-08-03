@@ -34,6 +34,17 @@ export const AMOUNT_TONE: Record<BudgetPaymentStatus, string> = {
   may_come: 'text-white/55',
 }
 
+export const BUDGET_PROGRESS = {
+  paidDot: 'bg-gold',
+  paidText: 'text-gold',
+  leftDot: 'bg-gold/35',
+  leftText: 'text-gold/70',
+  overDot: 'bg-gold',
+  overText: 'text-gold',
+  bar: 'bg-gold/20 [&>div]:bg-gold',
+  barOver: 'bg-gold/25 [&>div]:bg-gold',
+} as const
+
 export function formatShortDate(iso: string | null | undefined) {
   if (!iso) return null
   const d = new Date(`${iso}T12:00:00`)

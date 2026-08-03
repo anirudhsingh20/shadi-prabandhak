@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
+import { BUDGET_PROGRESS } from '@/components/budget/shared'
 import { sumPaymentsByStatus } from '@/lib/budget'
 import { sumFundsByAvailability, buildFundTimeline } from '@/lib/bankFunds'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
@@ -723,14 +724,14 @@ export function HomePage() {
               <p className="min-w-0 flex-1 px-1 text-center text-[11px] leading-tight">
                 <span className="text-white/45">Paid </span>
                 <span
-                  className="font-medium tabular-nums text-emerald-400"
+                  className={cn('font-medium tabular-nums', BUDGET_PROGRESS.paidText)}
                   title={formatCurrency(budgetInsight.paid)}
                 >
                   {formatCurrencyCompact(budgetInsight.paid)}
                 </span>
                 <span className="text-white/45"> · Left </span>
                 <span
-                  className="font-medium tabular-nums text-white/85"
+                  className={cn('font-medium tabular-nums', BUDGET_PROGRESS.leftText)}
                   title={formatCurrency(budgetInsight.budgetLeft)}
                 >
                   {formatCurrencyCompact(budgetInsight.budgetLeft)}
@@ -739,7 +740,7 @@ export function HomePage() {
               <p className="min-w-0 shrink-0 text-right">
                 <span className="text-[11px] text-white/45">Required </span>
                 <span
-                  className="font-display text-base font-semibold tabular-nums text-amber-300"
+                  className="font-display text-base font-semibold tabular-nums text-gold/90"
                   title={formatCurrency(budgetInsight.moneyRequired)}
                 >
                   {formatCurrencyCompact(budgetInsight.moneyRequired)}
@@ -748,12 +749,22 @@ export function HomePage() {
             </div>
             {budgetInsight.totalBudget > 0 ? (
               <div className="mt-1 flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1">
+                  <span className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.paidDot)} aria-hidden />
+                  <span className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.leftDot)} aria-hidden />
+                </div>
                 <Progress
                   value={budgetInsight.usedPct}
-                  className="h-1 flex-1 bg-emerald-400/15 [&>div]:bg-emerald-400"
+                  className={cn('h-1 flex-1', BUDGET_PROGRESS.bar)}
                 />
-                <span className="shrink-0 text-[10px] tabular-nums text-emerald-400">
-                  {Math.round(budgetInsight.usedPct)}%
+                <span className="shrink-0 text-[10px] tabular-nums">
+                  <span className={BUDGET_PROGRESS.paidText}>
+                    {Math.round(budgetInsight.usedPct)}%
+                  </span>
+                  <span className="text-white/40"> · </span>
+                  <span className={BUDGET_PROGRESS.leftText}>
+                    {Math.round(100 - budgetInsight.usedPct)}% left
+                  </span>
                 </span>
               </div>
             ) : null}

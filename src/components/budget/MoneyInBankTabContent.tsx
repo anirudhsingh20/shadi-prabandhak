@@ -359,13 +359,13 @@ export function MoneyInBankTabContent({
             {projectionSummary.showScheduled ? (
               <div
                 className={cn(
-                  'min-w-0',
+                  'min-w-0 rounded-md border border-gold/40 bg-gold/10 px-2 py-1.5',
                   projectionSummary.showExpected ? 'text-center' : 'text-right',
                 )}
               >
-                <p className="text-[10px] uppercase tracking-wide text-white/45">With scheduled</p>
+                <p className="text-[10px] uppercase tracking-wide text-gold/80">Total with scheduled</p>
                 <p
-                  className="font-display text-lg font-semibold leading-none tabular-nums text-amber-300"
+                  className="font-display text-xl font-semibold leading-none tabular-nums text-gold"
                   title={formatCurrency(projectionSummary.withScheduledTotal)}
                 >
                   {formatCurrencyCompact(projectionSummary.withScheduledTotal)}

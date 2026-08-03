@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react'
 import { BudgetCharts } from '@/components/BudgetCharts'
 import {
+  BUDGET_PROGRESS,
   BudgetDrawerShell,
   BudgetPaymentRow,
   CategoryForm,
@@ -22,10 +23,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { sumPaymentsByCategory, sumPaymentsByStatus } from '@/lib/budget'
+import { sumFundsByAvailability } from '@/lib/bankFunds'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BudgetCategoryInput } from '@/lib/validations'
-import type { BudgetCategory, BudgetPayment, BudgetPaymentStatus, Wedding } from '@/lib/types'
+import type { BankFund, BudgetCategory, BudgetPayment, BudgetPaymentStatus } from '@/lib/types'
 
 type BudgetSubTab = 'categories' | 'payments' | 'charts'
 
@@ -41,17 +43,15 @@ function sortPayments(list: BudgetPayment[]) {
 }
 
 export function BudgetTabContent({
-  wedding,
   categories,
   payments,
+  bankFunds,
   isLoading,
-  onOpenTotalBudget,
 }: {
-  wedding: Wedding | undefined
   categories: BudgetCategory[]
   payments: BudgetPayment[]
+  bankFunds: BankFund[]
   isLoading: boolean
-  onOpenTotalBudget: () => void
 }) {
   const qc = useQueryClient()
   const [tab, setTab] = useState<BudgetSubTab>('categories')
@@ -70,18 +70,20 @@ export function BudgetTabContent({
   const byCategory = useMemo(() => sumPaymentsByCategory(payments), [payments])
 
   const totals = useMemo(() => {
-    const totalBudget = Number(wedding?.total_budget) || 0
+    const fundTotals = sumFundsByAvailability(bankFunds)
+    const moneyInBank = fundTotals.now + fundTotals.scheduled
     const allocated = categories.reduce((s, c) => s + Number(c.allocated), 0)
     return {
-      totalBudget,
+      moneyInBank,
+      fundTotals,
       allocated,
-      unallocated: totalBudget - allocated,
+      unallocated: moneyInBank - allocated,
       ...paymentTotals,
-      remainingBudget: totalBudget - paymentTotals.paid,
+      remainingBudget: moneyInBank - paymentTotals.paid,
       paymentCount: payments.length,
       categoryCount: categories.length,
     }
-  }, [wedding, categories, paymentTotals, payments.length])
+  }, [bankFunds, categories, paymentTotals, payments.length])
 
   const statusChartData = useMemo(
     () => [
@@ -163,31 +165,59 @@ export function BudgetTabContent({
   }
 
   const overallPct =
-    totals.totalBudget > 0 ? Math.min(100, (totals.paid / totals.totalBudget) * 100) : 0
+    totals.moneyInBank > 0 ? Math.min(100, (totals.paid / totals.moneyInBank) * 100) : 0
 
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-md border border-gold/40">
-        <button
-          type="button"
-          onClick={onOpenTotalBudget}
-          className="w-full border-b border-gold/30 px-3 py-2.5 text-left transition-colors hover:bg-gold/10"
+        <Link
+          to="/money-in-bank"
+          className="block w-full border-b border-gold/30 px-3 py-2.5 text-left transition-colors hover:bg-gold/10"
         >
-          <p className="text-[10px] uppercase tracking-wide text-white/55">Total budget</p>
+          <p className="text-[10px] uppercase tracking-wide text-white/55">Total with scheduled</p>
           <p className="flex items-center gap-1.5 font-display text-xl font-semibold text-gold">
-            <span className="min-w-0 truncate">{formatCurrency(totals.totalBudget)}</span>
+            <span className="min-w-0 truncate" title={formatCurrency(totals.moneyInBank)}>
+              {formatCurrency(totals.moneyInBank)}
+            </span>
             <Pencil className="h-3.5 w-3.5 shrink-0 text-gold/70" aria-hidden />
           </p>
           <p className="text-[11px] text-white/50">
+            {formatCurrencyCompact(totals.fundTotals.now)} now
+            {totals.fundTotals.scheduled > 0
+              ? ` · ${formatCurrencyCompact(totals.fundTotals.scheduled)} scheduled`
+              : ''}
+            {' · '}
             {formatCurrency(totals.remainingBudget)} left after paid
           </p>
-        </button>
+        </Link>
         <div className="border-b border-gold/25 px-3 py-2">
-          <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-white/55">
-            <span>Budget used</span>
-            <span className="tabular-nums text-white/70">{Math.round(overallPct)}%</span>
+          <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-white/55">
+              <span className="flex items-center gap-1">
+                <span className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.paidDot)} aria-hidden />
+                Paid{' '}
+                <span className={cn('tabular-nums', BUDGET_PROGRESS.paidText)} title={formatCurrency(totals.paid)}>
+                  {formatCurrencyCompact(totals.paid)}
+                </span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.leftDot)} aria-hidden />
+                Left{' '}
+                <span
+                  className={cn('tabular-nums', BUDGET_PROGRESS.leftText)}
+                  title={formatCurrency(totals.remainingBudget)}
+                >
+                  {formatCurrencyCompact(totals.remainingBudget)}
+                </span>
+              </span>
+            </div>
+            <span className="tabular-nums">
+              <span className={BUDGET_PROGRESS.paidText}>{Math.round(overallPct)}%</span>
+              <span className="text-white/40"> · </span>
+              <span className={BUDGET_PROGRESS.leftText}>{Math.round(100 - overallPct)}% left</span>
+            </span>
           </div>
-          <Progress value={overallPct} className="h-1.5" />
+          <Progress value={overallPct} className={cn('h-1.5', BUDGET_PROGRESS.bar)} />
         </div>
         <div className="grid grid-cols-4 gap-1.5 px-2 py-2">
           <StatCell
@@ -255,10 +285,10 @@ export function BudgetTabContent({
               {categories.map((c) => {
                 const rollup = byCategory[c.id]
                 const paid = rollup?.paid ?? 0
-                const pending = rollup?.pending ?? 0
-                const mayCome = rollup?.mayCome ?? 0
                 const allocated = Number(c.allocated)
                 const remaining = allocated - paid
+                const paidPct =
+                  allocated > 0 ? Math.round((paid / allocated) * 100) : 0
                 const pct = allocated > 0 ? Math.min(100, (paid / allocated) * 100) : 0
                 const over = paid > allocated && allocated > 0
                 const open = expandedCat === c.id
@@ -266,68 +296,28 @@ export function BudgetTabContent({
 
                 return (
                   <div key={c.id} className="overflow-hidden rounded-md border border-gold/35">
-                    <div className="flex items-start gap-1 px-2.5 py-2">
-                      <button
-                        type="button"
-                        className="min-w-0 flex-1 text-left"
-                        onClick={() => setExpandedCat(open ? null : c.id)}
-                      >
-                        <div className="flex items-center gap-1.5">
+                    <div className="px-2.5 py-2">
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                          onClick={() => setExpandedCat(open ? null : c.id)}
+                        >
                           <ChevronDown
                             className={cn(
                               'h-3.5 w-3.5 shrink-0 text-white/45 transition-transform',
                               open && 'rotate-180',
                             )}
                           />
-                          <p className="truncate text-sm font-semibold text-white">{c.name}</p>
+                          <p className="min-w-0 truncate text-sm font-semibold text-white">{c.name}</p>
                           <span className="shrink-0 text-[10px] tabular-nums text-white/40">
                             {rollup?.count ?? 0} pay
                           </span>
-                        </div>
-                        {c.description ? (
-                          <p className="mt-0.5 pl-5 text-[11px] leading-snug text-white/45">
-                            {c.description}
-                          </p>
-                        ) : null}
-                        <div className="mt-1 grid grid-cols-3 gap-1 pl-5 text-[11px]">
-                          <div>
-                            <p className="text-white/45">Paid</p>
-                            <p className="font-medium tabular-nums text-gold">{formatCurrency(paid)}</p>
-                          </div>
-                          <div>
-                            <p className="text-white/45">Allocated</p>
-                            <p className="font-medium tabular-nums text-white">
-                              {formatCurrency(allocated)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-white/45">{over ? 'Over' : 'Left'}</p>
-                            <p
-                              className={cn(
-                                'font-medium tabular-nums',
-                                over ? 'text-amber-300' : 'text-white',
-                              )}
-                            >
-                              {formatCurrency(Math.abs(remaining))}
-                            </p>
-                          </div>
-                        </div>
-                        {(pending > 0 || mayCome > 0) && (
-                          <p className="mt-1 pl-5 text-[11px] text-white/50">
-                            {pending > 0 && `Pending ${formatCurrency(pending)}`}
-                            {pending > 0 && mayCome > 0 && ' · '}
-                            {mayCome > 0 && `May come ${formatCurrency(mayCome)}`}
-                          </p>
-                        )}
-                        <div className="mt-2 pl-5">
-                          <Progress value={pct} className="h-1.5" />
-                        </div>
-                      </button>
-                      <div className="flex shrink-0 gap-0.5 pt-0.5">
+                        </button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-7 w-7 shrink-0"
                           onClick={() => setEditCat(c)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -335,11 +325,79 @@ export function BudgetTabContent({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-7 w-7 shrink-0"
                           onClick={() => setDeleteCatId(c.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
+                      </div>
+                      {c.description ? (
+                        <p className="mt-0.5 pl-5 text-[11px] leading-snug text-white/45">
+                          {c.description}
+                        </p>
+                      ) : null}
+                      <div className="mt-1 grid grid-cols-3 gap-1 pl-5 text-[11px]">
+                        <div>
+                          <p className="text-white/45">Paid</p>
+                          <p className={cn('font-medium tabular-nums', BUDGET_PROGRESS.paidText)}>
+                            {formatCurrency(paid)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-white/45">Allocated</p>
+                          <p className="font-medium tabular-nums text-white">
+                            {formatCurrency(allocated)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-white/45">{over ? 'Over' : 'Left'}</p>
+                          <p
+                            className={cn(
+                              'font-medium tabular-nums',
+                              over ? BUDGET_PROGRESS.overText : BUDGET_PROGRESS.leftText,
+                            )}
+                          >
+                            {formatCurrency(Math.abs(remaining))}
+                            {allocated > 0 ? (
+                              <span className="text-white/45">
+                                {' · '}
+                                {Math.round((Math.abs(remaining) / allocated) * 100)}%
+                              </span>
+                            ) : null}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1.5 pl-5">
+                        <div className="flex shrink-0 items-center gap-1">
+                          <span
+                            className={cn(
+                              'h-1.5 w-1.5 rounded-full',
+                              over ? BUDGET_PROGRESS.overDot : BUDGET_PROGRESS.paidDot,
+                            )}
+                            aria-hidden
+                          />
+                          {!over ? (
+                            <span
+                              className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.leftDot)}
+                              aria-hidden
+                            />
+                          ) : null}
+                        </div>
+                        <Progress
+                          value={pct}
+                          className={cn(
+                            'h-1.5 min-w-0 flex-1',
+                            over ? BUDGET_PROGRESS.barOver : BUDGET_PROGRESS.bar,
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            'shrink-0 text-[10px] tabular-nums',
+                            over ? BUDGET_PROGRESS.overText : BUDGET_PROGRESS.paidText,
+                          )}
+                        >
+                          {paidPct}%
+                        </span>
                       </div>
                     </div>
 
