@@ -106,6 +106,25 @@ create table if not exists payment_sources (
   unique (wedding_id, key)
 );
 
+create table if not exists bank_funds (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  label text not null,
+  payment_source text,
+  made_by text,
+  availability text not null check (availability in ('now', 'scheduled', 'expected')),
+  amount numeric not null check (amount >= 0),
+  expected_date date,
+  notes text,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  check (
+    (availability = 'now' and expected_date is null)
+    or (availability = 'scheduled' and expected_date is not null)
+    or (availability = 'expected')
+  )
+);
+
 -- Vendors
 create table if not exists vendors (
   id uuid primary key default gen_random_uuid(),
@@ -155,6 +174,7 @@ alter table budget_categories enable row level security;
 alter table budget_payments enable row level security;
 alter table payment_makers enable row level security;
 alter table payment_sources enable row level security;
+alter table bank_funds enable row level security;
 alter table vendors enable row level security;
 alter table checklist_items enable row level security;
 alter table decisions enable row level security;
@@ -168,6 +188,7 @@ create policy "Authenticated full access budget" on budget_categories for all us
 create policy "Authenticated full access budget_payments" on budget_payments for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access payment_makers" on payment_makers for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access payment_sources" on payment_sources for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access bank_funds" on bank_funds for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access vendors" on vendors for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access checklist" on checklist_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access decisions" on decisions for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

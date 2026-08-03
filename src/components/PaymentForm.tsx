@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Camera, ImagePlus, Plus, X } from 'lucide-react'
+import { Camera, ImagePlus, X } from 'lucide-react'
 import { ImageLightbox } from '@/components/ImageLightbox'
+import { PaymentCatalogChips } from '@/components/PaymentCatalogChips'
 import { PaymentTitleInput } from '@/components/PaymentTitleInput'
 import {
   Form,
@@ -16,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { assertPaymentImageFile } from '@/lib/payment-image'
 import { cn, formatAmountInWords } from '@/lib/utils'
 import { budgetPaymentSchema, type BudgetPaymentInput } from '@/lib/validations'
+import { CATALOG_LABELS } from '@/lib/paymentCatalog'
 import type {
   BudgetCategory,
   BudgetPaymentStatus,
@@ -343,131 +345,37 @@ export function PaymentForm({
           )}
         />
 
-        {/* Made by */}
         <FormField
           control={form.control}
           name="made_by"
           render={({ field }) => (
             <FormItem className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
-                  Made by
-                </p>
-                {onManageMakers ? (
-                  <button
-                    type="button"
-                    onClick={onManageMakers}
-                    className="inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[11px] font-medium text-gold hover:bg-white/[0.04]"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add
-                  </button>
-                ) : null}
-              </div>
-              <FormControl>
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    onClick={() => field.onChange('')}
-                    className={cn(
-                      'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
-                      !field.value
-                        ? 'border-transparent bg-gold text-gold-foreground'
-                        : 'border-gold/25 text-white/60 hover:bg-white/5',
-                    )}
-                  >
-                    None
-                  </button>
-                  {makers.map((m) => {
-                    const active = field.value === m.key
-                    return (
-                      <button
-                        key={m.key}
-                        type="button"
-                        onClick={() => field.onChange(m.key)}
-                        className={cn(
-                          'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
-                          active
-                            ? 'border-transparent bg-gold text-gold-foreground'
-                            : 'border-gold/25 text-white/60 hover:bg-white/5',
-                        )}
-                      >
-                        {m.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </FormControl>
-              {makers.length === 0 && (
-                <p className="text-[11px] text-white/40">
-                  No options yet — tap Add (e.g. Bride, Groom).
-                </p>
-              )}
+              <PaymentCatalogChips
+                label={CATALOG_LABELS.maker.field}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                options={makers.map((m) => ({ key: m.key, label: m.label }))}
+                onManage={onManageMakers}
+                emptyHint={CATALOG_LABELS.maker.emptyHint}
+              />
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Payment source */}
         <FormField
           control={form.control}
           name="payment_source"
           render={({ field }) => (
             <FormItem className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
-                  Payment source
-                </p>
-                {onManageSources ? (
-                  <button
-                    type="button"
-                    onClick={onManageSources}
-                    className="inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[11px] font-medium text-gold hover:bg-white/[0.04]"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add
-                  </button>
-                ) : null}
-              </div>
-              <FormControl>
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    onClick={() => field.onChange('')}
-                    className={cn(
-                      'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
-                      !field.value
-                        ? 'border-transparent bg-gold text-gold-foreground'
-                        : 'border-gold/25 text-white/60 hover:bg-white/5',
-                    )}
-                  >
-                    None
-                  </button>
-                  {sources.map((s) => {
-                    const active = field.value === s.key
-                    return (
-                      <button
-                        key={s.key}
-                        type="button"
-                        onClick={() => field.onChange(s.key)}
-                        className={cn(
-                          'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
-                          active
-                            ? 'border-transparent bg-gold text-gold-foreground'
-                            : 'border-gold/25 text-white/60 hover:bg-white/5',
-                        )}
-                      >
-                        {s.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </FormControl>
-              {sources.length === 0 && (
-                <p className="text-[11px] text-white/40">
-                  No sources yet — tap Add (e.g. Cash, SBI).
-                </p>
-              )}
+              <PaymentCatalogChips
+                label={CATALOG_LABELS.source.field}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                options={sources.map((s) => ({ key: s.key, label: s.label }))}
+                onManage={onManageSources}
+                emptyHint={CATALOG_LABELS.source.emptyHint}
+              />
               <FormMessage />
             </FormItem>
           )}

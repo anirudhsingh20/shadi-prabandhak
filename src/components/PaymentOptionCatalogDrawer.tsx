@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { slugifyKey } from '@/lib/utils'
+import { CATALOG_LABELS } from '@/lib/paymentCatalog'
 
 export type PaymentCatalogOption = {
   id: string
@@ -23,6 +24,8 @@ export type PaymentCatalogOption = {
 
 type CatalogKind = 'makers' | 'sources'
 
+const CLEAR_TABLES = ['budget_payments', 'bank_funds'] as const
+
 const CATALOG: Record<
   CatalogKind,
   {
@@ -32,26 +35,23 @@ const CATALOG: Record<
     title: string
     placeholder: string
     empty: string
-    noun: string
   }
 > = {
   makers: {
     table: 'payment_makers',
     queryKey: ['payment_makers'],
     paymentColumn: 'made_by',
-    title: 'Made by',
-    placeholder: 'e.g. Bride, Groom, Dad',
-    empty: 'No options yet.',
-    noun: 'payment',
+    title: CATALOG_LABELS.maker.manage,
+    placeholder: CATALOG_LABELS.maker.placeholder,
+    empty: 'No people yet.',
   },
   sources: {
     table: 'payment_sources',
     queryKey: ['payment_sources'],
     paymentColumn: 'payment_source',
-    title: 'Payment source',
-    placeholder: 'e.g. Cash, SBI, HDFC',
-    empty: 'No sources yet.',
-    noun: 'payment',
+    title: CATALOG_LABELS.source.manage,
+    placeholder: CATALOG_LABELS.source.placeholder,
+    empty: 'No accounts yet.',
   },
 }
 
@@ -115,20 +115,21 @@ export function PaymentOptionCatalogDrawer({
     try {
       const inUse = usageCounts[opt.key] ?? 0
       if (inUse > 0) {
-        const { error: clearError } = await supabase
-          .from('budget_payments')
-          .update({ [meta.paymentColumn]: null })
-          .eq('wedding_id', WEDDING_ID)
-          .eq(meta.paymentColumn, opt.key)
-        if (clearError) throw clearError
+        for (const table of CLEAR_TABLES) {
+          const { error: clearError } = await supabase
+            .from(table)
+            .update({ [meta.paymentColumn]: null })
+            .eq('wedding_id', WEDDING_ID)
+            .eq(meta.paymentColumn, opt.key)
+          if (clearError) throw clearError
+        }
       }
       const { error } = await supabase.from(meta.table).delete().eq('id', opt.id)
       if (error) throw error
-      toast.success(
-        inUse > 0 ? `Removed · ${inUse} ${meta.noun}(s) cleared` : 'Removed',
-      )
+      toast.success(inUse > 0 ? `Removed · ${inUse} use(s) cleared` : 'Removed')
       qc.invalidateQueries({ queryKey: meta.queryKey })
       qc.invalidateQueries({ queryKey: ['budget-payments'] })
+      qc.invalidateQueries({ queryKey: ['bank-funds'] })
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to remove')
     } finally {
@@ -203,7 +204,7 @@ export function PaymentOptionCatalogDrawer({
                   <p className="truncate text-sm font-medium text-white">{opt.label}</p>
                   <p className="text-[11px] text-white/45">
                     {usageCounts[opt.key] ?? 0}{' '}
-                    {(usageCounts[opt.key] ?? 0) === 1 ? meta.noun : `${meta.noun}s`}
+                    {(usageCounts[opt.key] ?? 0) === 1 ? 'use' : 'uses'}
                   </p>
                 </div>
                 <Button

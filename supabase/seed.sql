@@ -50,6 +50,9 @@ insert into budget_payments (wedding_id, category_id, title, amount, status, due
 ('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'Album & extras', 50000, 'may_come', null, 'Optional add-ons'),
 ('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000008', 'Guest transport', 75000, 'may_come', '2026-11-15', 'If needed');
 
+insert into bank_funds (wedding_id, label, payment_source, availability, amount, sort_order) values
+('00000000-0000-0000-0000-000000000001', 'Total in bank', null, 'now', 2000000, 0);
+
 insert into vendors (wedding_id, type, name, phone, email, notes, status) values
 ('00000000-0000-0000-0000-000000000001', 'Venue', 'Grand Heritage Banquet', '+91 98765 43210', 'venue@example.com', 'Capacity 500 · Lawn + hall', 'shortlisted'),
 ('00000000-0000-0000-0000-000000000001', 'Photography', 'Lens & Light Studio', '+91 91234 56789', 'hello@lenslight.in', 'Candid + traditional · 2 photographers', 'booked'),

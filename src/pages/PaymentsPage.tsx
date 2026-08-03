@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { recentPaymentTitles, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
+import { catalogUsageCounts } from '@/lib/paymentCatalog'
 import {
   deletePaymentImages,
   uploadPaymentImages,
@@ -34,6 +35,7 @@ import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BudgetPaymentInput } from '@/lib/validations'
 import type {
+  BankFund,
   BudgetCategory,
   BudgetPayment,
   BudgetPaymentStatus,
@@ -323,6 +325,18 @@ export function PaymentsPage() {
     },
   })
 
+  const { data: bankFunds = [] } = useQuery({
+    queryKey: ['bank-funds'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bank_funds')
+        .select('payment_source, made_by')
+        .eq('wedding_id', WEDDING_ID)
+      if (error) throw error
+      return data as Pick<BankFund, 'payment_source' | 'made_by'>[]
+    },
+  })
+
   const categoryMap = useMemo(
     () => Object.fromEntries(categories.map((c) => [c.id, c.name])),
     [categories],
@@ -338,23 +352,15 @@ export function PaymentsPage() {
     [sources],
   )
 
-  const makerUsage = useMemo(() => {
-    const counts: Record<string, number> = {}
-    for (const p of payments) {
-      if (!p.made_by) continue
-      counts[p.made_by] = (counts[p.made_by] ?? 0) + 1
-    }
-    return counts
-  }, [payments])
+  const makerUsage = useMemo(
+    () => catalogUsageCounts(payments, bankFunds, 'made_by'),
+    [payments, bankFunds],
+  )
 
-  const sourceUsage = useMemo(() => {
-    const counts: Record<string, number> = {}
-    for (const p of payments) {
-      if (!p.payment_source) continue
-      counts[p.payment_source] = (counts[p.payment_source] ?? 0) + 1
-    }
-    return counts
-  }, [payments])
+  const sourceUsage = useMemo(
+    () => catalogUsageCounts(payments, bankFunds, 'payment_source'),
+    [payments, bankFunds],
+  )
 
   const titleSuggestions = useMemo(() => recentPaymentTitles(payments), [payments])
 

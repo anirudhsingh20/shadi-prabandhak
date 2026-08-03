@@ -6,6 +6,7 @@ export type VendorStatus = 'booked' | 'shortlisted'
 export type ChecklistStatus = 'done' | 'next' | 'later'
 export type ChecklistPriority = 'high' | 'medium' | 'low'
 export type BudgetPaymentStatus = 'done' | 'pending' | 'may_come'
+export type BankFundAvailability = 'now' | 'scheduled' | 'expected'
 export interface Wedding {
   id: string
   bride_name: string
@@ -91,6 +92,20 @@ export interface PaymentSourceType {
   sort_order: number
 }
 
+export interface BankFund {
+  id: string
+  wedding_id: string
+  label: string
+  payment_source: string | null
+  made_by: string | null
+  availability: BankFundAvailability
+  amount: number
+  expected_date: string | null
+  notes: string | null
+  sort_order: number
+  created_at: string
+}
+
 export interface Vendor {
   id: string
   wedding_id: string
@@ -150,6 +165,11 @@ export interface Database {
         Row: PaymentSourceType
         Insert: Omit<PaymentSourceType, 'id'> & { id?: string }
         Update: Partial<PaymentSourceType>
+      }
+      bank_funds: {
+        Row: BankFund
+        Insert: Omit<BankFund, 'id' | 'created_at'> & { id?: string; created_at?: string }
+        Update: Partial<BankFund>
       }
       vendors: { Row: Vendor; Insert: Omit<Vendor, 'id'> & { id?: string }; Update: Partial<Vendor> }
       checklist_items: { Row: ChecklistItem; Insert: Omit<ChecklistItem, 'id'> & { id?: string }; Update: Partial<ChecklistItem> }

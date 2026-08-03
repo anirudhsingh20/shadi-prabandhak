@@ -107,4 +107,34 @@
   .ideas-tldraw .tl-container {
     height: 100%;
   }
+
+  /* Horizontal timeline — scrollbar always visible */
+  .timeline-scroll-x {
+    overflow-x: scroll;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--gold) / 0.55) hsl(var(--gold) / 0.12);
+  }
+
+  .timeline-scroll-x::-webkit-scrollbar {
+    height: 7px;
+  }
+
+  .timeline-scroll-x::-webkit-scrollbar-track {
+    margin-inline: 4px;
+    border-radius: 999px;
+    background: hsl(var(--gold) / 0.12);
+  }
+
+  .timeline-scroll-x::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: hsl(var(--gold) / 0.55);
+  }
+
+  .timeline-scroll-x::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--gold) / 0.72);
+  }
 }

@@ -24,6 +24,39 @@ export const moneyInBankSchema = z.object({
   money_in_bank: z.coerce.number().min(0, 'Must be 0 or more'),
 })
 
+export const bankFundSchema = z
+  .object({
+    label: z.string().optional().or(z.literal('')),
+    payment_source: z.string().min(1, 'Pick a payment source'),
+    made_by: z.string().optional().or(z.literal('')),
+    availability: z.enum(['now', 'scheduled', 'expected']),
+    amount: z.preprocess(
+      (v) => (v === '' || v === undefined || v === null ? undefined : v),
+      z
+        .number({ required_error: 'Amount is required', invalid_type_error: 'Enter an amount' })
+        .min(0, 'Must be 0 or more'),
+    ),
+    expected_date: z.string().optional().or(z.literal('')),
+    notes: z.string().optional(),
+    sort_order: z.coerce.number().int().min(0).default(0),
+  })
+  .superRefine((values, ctx) => {
+    if (values.availability === 'now' && values.expected_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Available-now entries cannot have a date',
+        path: ['expected_date'],
+      })
+    }
+    if (values.availability === 'scheduled' && !values.expected_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Scheduled entries need an expected date',
+        path: ['expected_date'],
+      })
+    }
+  })
+
 export const totalBudgetSchema = z.object({
   total_budget: z.coerce.number().min(0, 'Must be 0 or more'),
 })
@@ -68,6 +101,7 @@ export type LoginInput = z.infer<typeof loginSchema>
 export type EventInput = z.infer<typeof eventSchema>
 export type BudgetCategoryInput = z.infer<typeof budgetCategorySchema>
 export type MoneyInBankInput = z.infer<typeof moneyInBankSchema>
+export type BankFundInput = z.infer<typeof bankFundSchema>
 export type TotalBudgetInput = z.infer<typeof totalBudgetSchema>
 export type BudgetPaymentInput = z.infer<typeof budgetPaymentSchema>
 export type VendorInput = z.infer<typeof vendorSchema>

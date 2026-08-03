@@ -8,6 +8,7 @@ import { CalendarDays, Check, ChevronRight, ChevronUp, Plus, Trash2, X } from 'l
 import { Countdown } from '@/components/Countdown'
 import { DeleteConfirm } from '@/components/DeleteConfirm'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import {
   Drawer,
   DrawerContent,
@@ -23,10 +24,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
+import { sumPaymentsByStatus } from '@/lib/budget'
+import { sumFundsByAvailability } from '@/lib/bankFunds'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { decisionSchema, type DecisionInput } from '@/lib/validations'
 import type {
+  BankFund,
   BudgetCategory,
   BudgetPayment,
   BudgetPaymentStatus,
@@ -38,6 +42,7 @@ import type {
   Guest,
   PaymentMakerType,
   PaymentSourceType,
+  Wedding,
 } from '@/lib/types'
 
 const PRIORITY_RANK: Record<ChecklistPriority, number> = {
@@ -435,6 +440,31 @@ export function HomePage() {
     },
   })
 
+  const { data: wedding, isLoading: weddingLoading } = useQuery({
+    queryKey: ['wedding'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('weddings').select('*').eq('id', WEDDING_ID).single()
+      if (error) throw error
+      return data as Wedding
+    },
+  })
+
+  const { data: bankFunds = [], isLoading: bankFundsLoading } = useQuery({
+    queryKey: ['bank-funds'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bank_funds')
+        .select('*')
+        .eq('wedding_id', WEDDING_ID)
+        .order('sort_order')
+        .order('created_at')
+      if (error) throw error
+      return data as BankFund[]
+    },
+  })
+
+  const budgetLoading = weddingLoading || paymentsLoading || bankFundsLoading
+
   const { data: makers = [] } = useQuery({
     queryKey: ['payment_makers'],
     queryFn: async () => {
@@ -485,6 +515,23 @@ export function HomePage() {
       })
       .slice(0, 3)
   }, [payments])
+
+  const budgetInsight = useMemo(() => {
+    const totalBudget = Number(wedding?.total_budget) || 0
+    const paymentTotals = sumPaymentsByStatus(payments)
+    const fundTotals = sumFundsByAvailability(bankFunds)
+    const budgetLeft = totalBudget - paymentTotals.paid
+    const usedPct =
+      totalBudget > 0 ? Math.min(100, (paymentTotals.paid / totalBudget) * 100) : 0
+    return {
+      inBankNow: fundTotals.now,
+      budgetLeft,
+      totalBudget,
+      usedPct,
+      ...paymentTotals,
+      scheduledInBank: fundTotals.scheduled,
+    }
+  }, [wedding, payments, bankFunds])
 
   const { data: events = [], isLoading: eventsLoading } = useQuery({
     queryKey: ['events'],
@@ -617,6 +664,47 @@ export function HomePage() {
               )
             })}
           </ul>
+        )}
+      </section>
+
+      <section>
+        <SectionNav to="/budget" title="Budget" hint="Overview" />
+        {budgetLoading ? (
+          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+        ) : (
+          <Link
+            to="/budget"
+            className="mt-0.5 block overflow-hidden rounded-md border border-gold/25 bg-white/[0.03] transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
+          >
+            <div className="grid grid-cols-2 gap-3 px-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-white/45">In bank now</p>
+                <p className="font-display text-base font-semibold tabular-nums text-emerald-400">
+                  {formatCurrencyCompact(budgetInsight.inBankNow)}
+                </p>
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-[10px] uppercase tracking-wide text-white/45">Budget left</p>
+                <p className="font-display text-base font-semibold tabular-nums text-gold">
+                  {formatCurrencyCompact(budgetInsight.budgetLeft)}
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-gold/15 px-3 py-2">
+              <p className="truncate text-[11px] text-white/45">
+                Paid {formatCurrencyCompact(budgetInsight.paid)} · Pending{' '}
+                {formatCurrencyCompact(budgetInsight.pending)}
+                {budgetInsight.scheduledInBank > 0
+                  ? ` · Scheduled ${formatCurrencyCompact(budgetInsight.scheduledInBank)}`
+                  : ''}
+              </p>
+              {budgetInsight.totalBudget > 0 ? (
+                <div className="mt-1.5">
+                  <Progress value={budgetInsight.usedPct} className="h-1" />
+                </div>
+              ) : null}
+            </div>
+          </Link>
         )}
       </section>
 
