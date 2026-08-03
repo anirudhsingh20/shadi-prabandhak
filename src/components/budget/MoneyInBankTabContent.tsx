@@ -272,14 +272,16 @@ export function MoneyInBankTabContent({
   const projectionSummary = useMemo(() => {
     const nowPoint = timeline.find((point) => point.monthKey === 'now')
     const lastPoint = timeline[timeline.length - 1]
+    const withScheduledTotal = totals.now + totals.scheduled
     const withExpectedTotal = lastPoint?.withExpectedTotal ?? nowPoint?.withExpectedTotal ?? totals.now
     const lastLabel =
       lastPoint && lastPoint.monthKey !== 'now' ? lastPoint.label : null
-    const showProjection =
-      withExpectedTotal > totals.now || Boolean(lastLabel)
+    const showScheduled = totals.scheduled > 0
+    const showExpected =
+      totals.expected > 0 || withExpectedTotal > withScheduledTotal || Boolean(lastLabel)
 
-    return { withExpectedTotal, lastLabel, showProjection }
-  }, [timeline, totals.now])
+    return { withScheduledTotal, withExpectedTotal, lastLabel, showScheduled, showExpected }
+  }, [timeline, totals.now, totals.scheduled, totals.expected])
 
   const saveFund = async (values: BankFundInput, id?: string) => {
     const payload = {
@@ -332,8 +334,17 @@ export function MoneyInBankTabContent({
         <div className="border-b border-gold/25 px-3 py-2">
           <div
             className={cn(
-              'grid gap-x-3',
-              projectionSummary.showProjection ? 'grid-cols-2' : 'grid-cols-1',
+              'grid gap-x-2',
+              projectionSummary.showScheduled && projectionSummary.showExpected && 'grid-cols-3',
+              projectionSummary.showScheduled &&
+                !projectionSummary.showExpected &&
+                'grid-cols-2',
+              !projectionSummary.showScheduled &&
+                projectionSummary.showExpected &&
+                'grid-cols-2',
+              !projectionSummary.showScheduled &&
+                !projectionSummary.showExpected &&
+                'grid-cols-1',
             )}
           >
             <div className="min-w-0">
@@ -345,7 +356,23 @@ export function MoneyInBankTabContent({
                 {formatCurrencyCompact(totals.now)}
               </p>
             </div>
-            {projectionSummary.showProjection ? (
+            {projectionSummary.showScheduled ? (
+              <div
+                className={cn(
+                  'min-w-0',
+                  projectionSummary.showExpected ? 'text-center' : 'text-right',
+                )}
+              >
+                <p className="text-[10px] uppercase tracking-wide text-white/45">With scheduled</p>
+                <p
+                  className="font-display text-lg font-semibold leading-none tabular-nums text-amber-300"
+                  title={formatCurrency(projectionSummary.withScheduledTotal)}
+                >
+                  {formatCurrencyCompact(projectionSummary.withScheduledTotal)}
+                </p>
+              </div>
+            ) : null}
+            {projectionSummary.showExpected ? (
               <div className="min-w-0 text-right">
                 <p className="text-[10px] uppercase tracking-wide text-white/45">With expected</p>
                 <p

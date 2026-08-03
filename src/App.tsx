@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AuthProvider } from '@/hooks/useAuth'
 import { BudgetPage } from '@/pages/BudgetPage'
+import { MoneyInBankPage } from '@/pages/MoneyInBankPage'
 import { ChecklistPage } from '@/pages/ChecklistPage'
 import { EventsPage } from '@/pages/EventsPage'
 import { GuestsV2Page } from '@/pages/GuestsV2Page'
@@ -43,6 +44,8 @@ export default function App() {
               <Route path="guests-classic" element={<Navigate to="/guests" replace />} />
               <Route path="family-tree" element={<FamilyTreePage />} />
               <Route path="budget" element={<BudgetPage />} />
+              <Route path="budget/bank" element={<Navigate to="/money-in-bank" replace />} />
+              <Route path="money-in-bank" element={<MoneyInBankPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="tracker" element={<Navigate to="/payments" replace />} />
               <Route path="vendors" element={<VendorsPage />} />

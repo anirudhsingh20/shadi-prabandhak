@@ -521,11 +521,13 @@ export function HomePage() {
     const paymentTotals = sumPaymentsByStatus(payments)
     const fundTotals = sumFundsByAvailability(bankFunds)
     const budgetLeft = totalBudget - paymentTotals.paid
+    const moneyRequired = paymentTotals.pending + paymentTotals.mayCome
     const usedPct =
       totalBudget > 0 ? Math.min(100, (paymentTotals.paid / totalBudget) * 100) : 0
     return {
       inBankNow: fundTotals.now,
       budgetLeft,
+      moneyRequired,
       totalBudget,
       usedPct,
       ...paymentTotals,
@@ -672,39 +674,70 @@ export function HomePage() {
         {budgetLoading ? (
           <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
         ) : (
-          <Link
-            to="/budget"
-            className="mt-0.5 block overflow-hidden rounded-md border border-gold/25 bg-white/[0.03] transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
-          >
-            <div className="grid grid-cols-2 gap-3 px-3 py-2.5">
-              <div className="min-w-0">
+          <div className="mt-0.5 overflow-hidden rounded-md border border-gold/25 bg-white/[0.03]">
+            <Link
+              to="/budget"
+              className="block border-b border-gold/15 px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+            >
+              <p className="text-[10px] uppercase tracking-wide text-white/45">Total budget</p>
+              <p
+                className="font-display text-lg font-semibold leading-none tabular-nums text-gold"
+                title={formatCurrency(budgetInsight.totalBudget)}
+              >
+                {formatCurrencyCompact(budgetInsight.totalBudget)}
+              </p>
+            </Link>
+            <div className="grid grid-cols-2 divide-x divide-gold/15 border-b border-gold/15">
+              <Link
+                to="/money-in-bank"
+                className="px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+              >
                 <p className="text-[10px] uppercase tracking-wide text-white/45">In bank now</p>
-                <p className="font-display text-base font-semibold tabular-nums text-emerald-400">
+                <p
+                  className="font-display text-base font-semibold leading-none tabular-nums text-emerald-400"
+                  title={formatCurrency(budgetInsight.inBankNow)}
+                >
                   {formatCurrencyCompact(budgetInsight.inBankNow)}
                 </p>
-              </div>
-              <div className="min-w-0 text-right">
-                <p className="text-[10px] uppercase tracking-wide text-white/45">Budget left</p>
-                <p className="font-display text-base font-semibold tabular-nums text-gold">
-                  {formatCurrencyCompact(budgetInsight.budgetLeft)}
+              </Link>
+              <Link
+                to="/payments"
+                className="px-3 py-2.5 text-right transition-colors hover:bg-white/[0.04]"
+              >
+                <p className="text-[10px] uppercase tracking-wide text-white/45">Money required</p>
+                <p
+                  className="font-display text-base font-semibold leading-none tabular-nums text-amber-300"
+                  title={formatCurrency(budgetInsight.moneyRequired)}
+                >
+                  {formatCurrencyCompact(budgetInsight.moneyRequired)}
                 </p>
-              </div>
+              </Link>
             </div>
-            <div className="border-t border-gold/15 px-3 py-2">
+            <Link
+              to="/budget"
+              className="block px-3 py-2 transition-colors hover:bg-white/[0.04]"
+            >
               <p className="truncate text-[11px] text-white/45">
-                Paid {formatCurrencyCompact(budgetInsight.paid)} · Pending{' '}
-                {formatCurrencyCompact(budgetInsight.pending)}
+                Paid {formatCurrencyCompact(budgetInsight.paid)} · Left{' '}
+                {formatCurrencyCompact(budgetInsight.budgetLeft)}
+                {budgetInsight.pending > 0
+                  ? ` · Pending ${formatCurrencyCompact(budgetInsight.pending)}`
+                  : ''}
                 {budgetInsight.scheduledInBank > 0
                   ? ` · Scheduled ${formatCurrencyCompact(budgetInsight.scheduledInBank)}`
                   : ''}
               </p>
               {budgetInsight.totalBudget > 0 ? (
                 <div className="mt-1.5">
+                  <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-white/40">
+                    <span>Budget used</span>
+                    <span className="tabular-nums">{Math.round(budgetInsight.usedPct)}%</span>
+                  </div>
                   <Progress value={budgetInsight.usedPct} className="h-1" />
                 </div>
               ) : null}
-            </div>
-          </Link>
+            </Link>
+          </div>
         )}
       </section>
 
