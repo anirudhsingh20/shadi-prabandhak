@@ -12,6 +12,8 @@ import {
   Drawer,
   DrawerContent,
   DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
 } from '@/components/ui/drawer'
 import {
   DropdownMenu,
@@ -266,27 +268,35 @@ function NotionCheckbox({
 function ChecklistDrawerShell({
   open,
   onOpenChange,
+  title,
   children,
   footer,
   onPortalHost,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  title: string
   children: ReactNode
   footer?: ReactNode
   onPortalHost: (node: HTMLDivElement | null) => void
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (open) scrollRef.current?.scrollTo({ top: 0 })
+  }, [open])
+
   return (
     <Drawer
       open={open}
       onOpenChange={onOpenChange}
       dismissible={false}
       shouldScaleBackground={false}
-      repositionInputs
+      repositionInputs={false}
       fixed
     >
       <DrawerContent
-        className="max-h-[min(65dvh,480px)] overflow-hidden"
+        className="flex max-h-[min(72dvh,540px)] flex-col overflow-hidden"
         onPointerDownOutside={(e) => {
           if (isSuggestMenuTarget(e.target)) e.preventDefault()
         }}
@@ -294,8 +304,24 @@ function ChecklistDrawerShell({
           if (isSuggestMenuTarget(e.target)) e.preventDefault()
         }}
       >
+        <DrawerHeader className="relative shrink-0 border-b border-gold/15 px-3 py-2 pr-10 text-left">
+          <DrawerTitle className="text-lg">{title}</DrawerTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-1.5 h-8 w-8 text-white/70 hover:text-gold"
+            aria-label="Close"
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </DrawerHeader>
         <div ref={onPortalHost} className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 pt-2 [touch-action:pan-y]">
+          <div
+            ref={scrollRef}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 pt-2 [touch-action:pan-y]"
+          >
             {children}
           </div>
         </div>
@@ -314,8 +340,6 @@ function ChecklistForm({
   onSubmit,
   formId = 'checklist-form',
   onSubmittingChange,
-  drawerTitle,
-  onClose,
 }: {
   defaultValues?: Partial<ChecklistItemInput>
   groupSuggestions?: string[]
@@ -323,8 +347,6 @@ function ChecklistForm({
   onSubmit: (values: ChecklistItemInput) => Promise<void>
   formId?: string
   onSubmittingChange?: (submitting: boolean) => void
-  drawerTitle: string
-  onClose: () => void
 }) {
   const form = useForm<ChecklistItemInput>({
     resolver: zodResolver(checklistItemSchema),
@@ -355,7 +377,8 @@ function ChecklistForm({
           control={form.control}
           name="title"
           render={({ field }) => (
-            <FormItem className="space-y-0">
+            <FormItem className="space-y-1">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Task</p>
               <FormControl>
                 <Input
                   placeholder="What needs to get done?"
@@ -367,20 +390,6 @@ function ChecklistForm({
             </FormItem>
           )}
         />
-
-        <div className="flex items-center justify-between gap-2 border-y border-gold/15 py-2">
-          <p className="font-display text-lg font-semibold tracking-wide text-gold">{drawerTitle}</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-white/70 hover:text-gold"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
 
         <FormField
           control={form.control}
@@ -896,6 +905,7 @@ export function ChecklistPage() {
           setCreateOpen(open)
           if (!open) setFormSubmitting(false)
         }}
+        title="Add task"
         onPortalHost={setCreatePortalHostRef}
         footer={
           <Button
@@ -911,8 +921,6 @@ export function ChecklistPage() {
         <ChecklistForm
           key={createOpen ? 'create-open' : 'create-closed'}
           formId="checklist-form-create"
-          drawerTitle="Add task"
-          onClose={() => setCreateOpen(false)}
           groupSuggestions={groupSuggestions}
           portalHost={createPortalHost}
           onSubmittingChange={setFormSubmitting}
@@ -935,6 +943,7 @@ export function ChecklistPage() {
             setFormSubmitting(false)
           }
         }}
+        title="Edit task"
         onPortalHost={setEditPortalHostRef}
         footer={
           editItem ? (
@@ -963,8 +972,6 @@ export function ChecklistPage() {
           <ChecklistForm
             key={editItem.id}
             formId="checklist-form-edit"
-            drawerTitle="Edit task"
-            onClose={() => setEditItem(null)}
             groupSuggestions={groupSuggestions}
             portalHost={editPortalHost}
             onSubmittingChange={setFormSubmitting}
