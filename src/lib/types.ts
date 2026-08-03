@@ -54,6 +54,7 @@ export interface BudgetCategory {
   id: string
   wedding_id: string
   name: string
+  description: string | null
   allocated: number
   spent: number
   sort_order: number

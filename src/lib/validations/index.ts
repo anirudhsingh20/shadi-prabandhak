@@ -16,6 +16,7 @@ export const eventSchema = z.object({
 
 export const budgetCategorySchema = z.object({
   name: z.string().min(2, 'Name is required'),
+  description: z.string().optional().or(z.literal('')),
   allocated: z.coerce.number().min(0, 'Must be 0 or more'),
   sort_order: z.coerce.number().int().min(0).default(0),
 })

@@ -147,6 +147,7 @@ export function BudgetTabContent({
   const saveCategory = async (values: BudgetCategoryInput, id?: string) => {
     const payload = {
       name: values.name,
+      description: values.description?.trim() || null,
       allocated: Number(values.allocated),
       sort_order: Number(values.sort_order) || 0,
       wedding_id: WEDDING_ID,
@@ -283,6 +284,11 @@ export function BudgetTabContent({
                             {rollup?.count ?? 0} pay
                           </span>
                         </div>
+                        {c.description ? (
+                          <p className="mt-0.5 pl-5 text-[11px] leading-snug text-white/45">
+                            {c.description}
+                          </p>
+                        ) : null}
                         <div className="mt-1 grid grid-cols-3 gap-1 pl-5 text-[11px]">
                           <div>
                             <p className="text-white/45">Paid</p>
@@ -467,6 +473,7 @@ export function BudgetTabContent({
             submitLabel="Save changes"
             defaultValues={{
               name: editCat.name,
+              description: editCat.description ?? '',
               allocated: Number(editCat.allocated),
               sort_order: editCat.sort_order,
             }}

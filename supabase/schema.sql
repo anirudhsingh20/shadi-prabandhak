@@ -68,6 +68,7 @@ create table if not exists budget_categories (
   id uuid primary key default gen_random_uuid(),
   wedding_id uuid not null references weddings(id) on delete cascade,
   name text not null,
+  description text,
   allocated numeric not null default 0 check (allocated >= 0),
   spent numeric not null default 0 check (spent >= 0),
   sort_order int not null default 0

@@ -274,7 +274,7 @@ export function PaymentForm({
               )}
             />
           </div>
-          <div className="w-[7.5rem] shrink-0 space-y-1">
+          <div className="w-[8.75rem] shrink-0 space-y-1">
             <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Due</p>
             <FormField
               control={form.control}
@@ -300,49 +300,64 @@ export function PaymentForm({
         <FormField
           control={form.control}
           name="category_id"
-          render={({ field }) => (
-            <FormItem className="space-y-1.5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Category</p>
-              <FormControl>
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    onClick={() => field.onChange('')}
-                    className={cn(
-                      'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
-                      !field.value
-                        ? 'border-transparent bg-gold text-gold-foreground'
-                        : 'border-gold/25 text-white/60 hover:bg-white/5',
-                    )}
-                  >
-                    None
-                  </button>
-                  {categories.map((c) => {
-                    const active = field.value === c.id
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => field.onChange(c.id)}
-                        className={cn(
-                          'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
-                          active
-                            ? 'border-transparent bg-gold text-gold-foreground'
-                            : 'border-gold/25 text-white/60 hover:bg-white/5',
-                        )}
-                      >
-                        {c.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </FormControl>
-              {categories.length === 0 && (
-                <p className="text-[11px] text-white/40">No categories yet — add some on Budget.</p>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const selectedCategory = field.value
+              ? categories.find((c) => c.id === field.value)
+              : undefined
+            const selectedDescription = selectedCategory?.description?.trim()
+
+            return (
+              <FormItem className="space-y-1.5">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Category</p>
+                <FormControl>
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('')}
+                      className={cn(
+                        'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
+                        !field.value
+                          ? 'border-transparent bg-gold text-gold-foreground'
+                          : 'border-gold/25 text-white/60 hover:bg-white/5',
+                      )}
+                    >
+                      None
+                    </button>
+                    {categories.map((c) => {
+                      const active = field.value === c.id
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => field.onChange(c.id)}
+                          className={cn(
+                            'rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
+                            active
+                              ? 'border-transparent bg-gold text-gold-foreground'
+                              : 'border-gold/25 text-white/60 hover:bg-white/5',
+                          )}
+                        >
+                          {c.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </FormControl>
+                {selectedDescription ? (
+                  <div className="rounded-md border border-gold/25 bg-white/[0.03] px-2.5 py-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+                      {selectedCategory?.name}
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-white/55">{selectedDescription}</p>
+                  </div>
+                ) : null}
+                {categories.length === 0 && (
+                  <p className="text-[11px] text-white/40">No categories yet — add some on Budget.</p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
 
         <FormField

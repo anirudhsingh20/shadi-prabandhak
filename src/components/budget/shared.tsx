@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { cn, formatCurrency } from '@/lib/utils'
 import {
   budgetCategorySchema,
@@ -108,7 +109,7 @@ export function CompactDateField({
   onChange,
   onBlur,
   name,
-  placeholder = '—',
+  placeholder = 'Pick date',
 }: {
   value: string
   onChange: (value: string) => void
@@ -127,7 +128,7 @@ export function CompactDateField({
   }
 
   return (
-    <div className="flex h-[22px] w-full items-center gap-1 border-b border-gold/30">
+    <div className="flex min-h-9 w-full items-center gap-1 border-b border-gold/30">
       <input
         ref={inputRef}
         type="date"
@@ -143,20 +144,23 @@ export function CompactDateField({
         type="button"
         onClick={openPicker}
         className={cn(
-          'min-w-0 flex-1 truncate text-left text-base leading-none transition-colors',
-          value ? 'text-white/70' : 'text-white/40 hover:text-white/55',
+          'flex min-h-9 min-w-0 flex-1 items-center gap-1.5 truncate rounded-sm px-0.5 text-left text-base leading-none transition-colors active:bg-white/[0.04]',
+          value ? 'text-white/70' : 'text-white/45 hover:text-white/60',
         )}
       >
-        {label ?? placeholder}
+        {!value ? (
+          <CalendarDays className="h-4 w-4 shrink-0 text-gold/75" aria-hidden />
+        ) : null}
+        <span className="min-w-0 truncate">{label ?? placeholder}</span>
       </button>
       {value ? (
         <button
           type="button"
           aria-label="Clear date"
           onClick={() => onChange('')}
-          className="flex shrink-0 items-center justify-center text-white/40 transition-colors hover:text-white/70"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-white/40 transition-colors hover:bg-white/[0.04] hover:text-white/70 active:bg-white/[0.06]"
         >
-          <X className="h-3.5 w-3.5" aria-hidden />
+          <X className="h-4 w-4" aria-hidden />
         </button>
       ) : null}
     </div>
@@ -333,7 +337,7 @@ export function CategoryForm({
 }) {
   const form = useForm<BudgetCategoryInput>({
     resolver: zodResolver(budgetCategorySchema),
-    defaultValues: { name: '', allocated: 0, sort_order: 0, ...defaultValues },
+    defaultValues: { name: '', description: '', allocated: 0, sort_order: 0, ...defaultValues },
   })
   return (
     <Form {...form}>
@@ -346,6 +350,24 @@ export function CategoryForm({
               <FormLabel>Category</FormLabel>
               <FormControl>
                 <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  rows={2}
+                  placeholder="What does this category cover?"
+                  className="min-h-0 resize-none text-base"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
