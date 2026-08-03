@@ -204,7 +204,7 @@ function QuickAddRow({
           }
         }}
         placeholder="Add a task…"
-        className="min-w-0 flex-1 bg-transparent text-[14px] leading-snug text-white/90 outline-none placeholder:text-white/30 disabled:opacity-50"
+        className="min-w-0 flex-1 bg-transparent text-base leading-snug text-white/90 outline-none placeholder:text-white/30 disabled:opacity-50"
       />
       {typing ? (
         <div
