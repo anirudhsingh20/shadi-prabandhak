@@ -182,7 +182,7 @@ function SectionNav({
       <span className="min-w-0 truncate">
         {title}
         {hint ? (
-          <span className="ml-1.5 font-sans text-[10px] font-normal tracking-normal text-white/40">
+          <span className="ml-1.5 font-sans text-[11px] font-normal tracking-normal text-white/40">
             {hint}
           </span>
         ) : null}
@@ -206,7 +206,7 @@ function SectionNav({
         <h2 className="min-w-0 flex-1 font-display text-[15px] font-semibold tracking-wide text-gold">
           {title}
           {hint ? (
-            <span className="ml-1.5 font-sans text-[10px] font-normal tracking-normal text-white/40">
+            <span className="ml-1.5 font-sans text-[11px] font-normal tracking-normal text-white/40">
               {hint}
             </span>
           ) : null}
@@ -255,7 +255,7 @@ function DecisionDateField({
         type="button"
         onClick={openPicker}
         className={cn(
-          'inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border px-2 text-[11px] transition-colors',
+          'inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border px-2 text-[12px] transition-colors',
           value
             ? 'border-gold/40 bg-gold/10 text-gold'
             : 'border-gold/20 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]',
@@ -300,7 +300,7 @@ function DecisionForm({
           name="text"
           render={({ field }) => (
             <FormItem className="space-y-1">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-white/45">
                 Note
               </p>
               <FormControl>
@@ -322,7 +322,7 @@ function DecisionForm({
           name="decision_date"
           render={({ field }) => (
             <FormItem className="space-y-1">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-white/45">
                 Date
               </p>
               <FormControl>
@@ -588,7 +588,7 @@ export function HomePage() {
   return (
     <div className="space-y-2.5">
       <section>
-        <p className="text-[11px] text-white/70">Anjali & Anirudh · 20 Nov 2026</p>
+        <p className="text-[12px] text-white/70">Anjali & Anirudh · 20 Nov 2026</p>
         <div className="mt-0.5">
           <Countdown />
         </div>
@@ -597,7 +597,7 @@ export function HomePage() {
       <section>
         <SectionNav to="/guests" title="Guests" />
         {guestsLoading ? (
-          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
         ) : (
           <Link
             to="/guests"
@@ -606,11 +606,11 @@ export function HomePage() {
             <span className="font-display text-base font-semibold tabular-nums text-white/90">
               {guestStats.total}
             </span>
-            <span className="min-w-0 flex-1 truncate text-[11px] text-white/40">
+            <span className="min-w-0 flex-1 truncate text-[12px] text-white/40">
               Bride {guestStats.bride} · Groom {guestStats.groom}
               {guestStats.common > 0 ? ` · Common ${guestStats.common}` : ''}
             </span>
-            <span className="shrink-0 text-[10px] tabular-nums text-white/30">
+            <span className="shrink-0 text-[11px] tabular-nums text-white/30">
               {guestStats.entries}
             </span>
           </Link>
@@ -620,9 +620,9 @@ export function HomePage() {
       <section>
         <SectionNav to="/checklist" title="Checklist" hint="Top 3" />
         {checklistLoading ? (
-          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
         ) : topChecklist.length === 0 ? (
-          <p className="py-0.5 text-[12px] text-white/45">No open tasks.</p>
+          <p className="py-0.5 text-[13px] text-white/45">No open tasks.</p>
         ) : (
           <ul>
             {topChecklist.map((item) => {
@@ -646,7 +646,7 @@ export function HomePage() {
                   <div className="min-w-0 flex-1">
                     <p
                       className={cn(
-                        'text-[12px] leading-snug',
+                        'text-[13px] leading-snug',
                         priority === 'high'
                           ? 'font-semibold text-white'
                           : priority === 'low'
@@ -656,7 +656,7 @@ export function HomePage() {
                     >
                       {item.title}
                       {due ? (
-                        <span className="ml-1.5 text-[10px] font-normal tabular-nums text-white/35">
+                        <span className="ml-1.5 text-[11px] font-normal tabular-nums text-white/35">
                           {due}
                         </span>
                       ) : null}
@@ -672,14 +672,14 @@ export function HomePage() {
       <section>
         <SectionNav to="/budget" title="Budget" hint="Overview" />
         {budgetLoading ? (
-          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
         ) : (
           <div className="mt-0.5 overflow-hidden rounded-md border border-gold/25 bg-white/[0.03]">
             <Link
               to="/budget"
               className="block border-b border-gold/15 px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
             >
-              <p className="text-[10px] uppercase tracking-wide text-white/45">Total budget</p>
+              <p className="text-[11px] uppercase tracking-wide text-white/45">Total budget</p>
               <p
                 className="font-display text-lg font-semibold leading-none tabular-nums text-gold"
                 title={formatCurrency(budgetInsight.totalBudget)}
@@ -692,7 +692,7 @@ export function HomePage() {
                 to="/money-in-bank"
                 className="px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
               >
-                <p className="text-[10px] uppercase tracking-wide text-white/45">In bank now</p>
+                <p className="text-[11px] uppercase tracking-wide text-white/45">In bank now</p>
                 <p
                   className="font-display text-base font-semibold leading-none tabular-nums text-emerald-400"
                   title={formatCurrency(budgetInsight.inBankNow)}
@@ -704,7 +704,7 @@ export function HomePage() {
                 to="/payments"
                 className="px-3 py-2.5 text-right transition-colors hover:bg-white/[0.04]"
               >
-                <p className="text-[10px] uppercase tracking-wide text-white/45">Money required</p>
+                <p className="text-[11px] uppercase tracking-wide text-white/45">Money required</p>
                 <p
                   className="font-display text-base font-semibold leading-none tabular-nums text-amber-300"
                   title={formatCurrency(budgetInsight.moneyRequired)}
@@ -717,7 +717,7 @@ export function HomePage() {
               to="/budget"
               className="block px-3 py-2 transition-colors hover:bg-white/[0.04]"
             >
-              <p className="truncate text-[11px] text-white/45">
+              <p className="truncate text-[12px] text-white/45">
                 Paid {formatCurrencyCompact(budgetInsight.paid)} · Left{' '}
                 {formatCurrencyCompact(budgetInsight.budgetLeft)}
                 {budgetInsight.pending > 0
@@ -729,7 +729,7 @@ export function HomePage() {
               </p>
               {budgetInsight.totalBudget > 0 ? (
                 <div className="mt-1.5">
-                  <div className="mb-1 flex items-center justify-between gap-2 text-[10px] text-white/40">
+                  <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-white/40">
                     <span>Budget used</span>
                     <span className="tabular-nums">{Math.round(budgetInsight.usedPct)}%</span>
                   </div>
@@ -758,9 +758,9 @@ export function HomePage() {
         />
 
         {isLoading ? (
-          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
         ) : decisions.length === 0 ? (
-          <p className="py-0.5 text-[12px] text-white/45">No decisions yet.</p>
+          <p className="py-0.5 text-[13px] text-white/45">No decisions yet.</p>
         ) : (
           <>
             <div className="relative mt-0.5 pl-3.5">
@@ -781,10 +781,10 @@ export function HomePage() {
                         index < list.length - 1 && 'border-b border-white/[0.04]',
                       )}
                     >
-                      <span className="w-9 shrink-0 pt-px text-[10px] font-medium tabular-nums leading-snug text-white/40">
+                      <span className="w-9 shrink-0 pt-px text-[11px] font-medium tabular-nums leading-snug text-white/40">
                         {formatDecisionDate(d.decision_date)}
                       </span>
-                      <p className="min-w-0 flex-1 text-[12px] leading-snug text-white/85">
+                      <p className="min-w-0 flex-1 text-[13px] leading-snug text-white/85">
                         {d.text}
                       </p>
                       <button
@@ -804,7 +804,7 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => setShowAllDecisions((v) => !v)}
-                className="mt-0.5 text-[11px] font-medium text-gold/75 hover:text-gold"
+                className="mt-0.5 text-[12px] font-medium text-gold/75 hover:text-gold"
               >
                 {showAllDecisions
                   ? 'Show less'
@@ -818,9 +818,9 @@ export function HomePage() {
       <section>
         <SectionNav to="/payments" title="Payments" hint="Paid" />
         {paymentsLoading ? (
-          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
         ) : recentPayments.length === 0 ? (
-          <p className="py-0.5 text-[12px] text-white/45">No paid payments yet.</p>
+          <p className="py-0.5 text-[13px] text-white/45">No paid payments yet.</p>
         ) : (
           <div className="relative mt-0.5 pl-3.5">
             <div
@@ -858,22 +858,22 @@ export function HomePage() {
                         index < recentPayments.length - 1 && 'border-b border-white/[0.04]',
                       )}
                     >
-                      <span className="w-9 shrink-0 pt-px text-[10px] font-medium tabular-nums leading-snug text-white/40">
+                      <span className="w-9 shrink-0 pt-px text-[11px] font-medium tabular-nums leading-snug text-white/40">
                         {date}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[12px] leading-snug text-white/90">
+                        <p className="truncate text-[13px] leading-snug text-white/90">
                           {payment.title}
                         </p>
                         {meta ? (
-                          <p className="truncate text-[10px] leading-tight text-white/35">
+                          <p className="truncate text-[11px] leading-tight text-white/35">
                             {meta}
                           </p>
                         ) : null}
                       </div>
                       <span
                         className={cn(
-                          'shrink-0 font-display text-[12px] font-semibold tabular-nums leading-snug',
+                          'shrink-0 font-display text-[13px] font-semibold tabular-nums leading-snug',
                           tone.amount,
                         )}
                       >
@@ -891,9 +891,9 @@ export function HomePage() {
       <section>
         <SectionNav to="/events" title="Events" />
         {eventsLoading ? (
-          <p className="py-0.5 text-[12px] text-white/45">Loading…</p>
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
         ) : homeEvents.length === 0 ? (
-          <p className="py-0.5 text-[12px] text-white/45">No events yet.</p>
+          <p className="py-0.5 text-[13px] text-white/45">No events yet.</p>
         ) : (
           <div className="-mx-4 mt-1 overflow-x-auto overscroll-x-contain px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <ul className="flex w-max gap-2 pb-0.5">
@@ -905,14 +905,14 @@ export function HomePage() {
                       to="/events"
                       className="flex h-full flex-col rounded-md border border-gold/25 bg-white/[0.03] px-2.5 py-2 transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
                     >
-                      <span className="text-[10px] font-medium tabular-nums text-white/40">
+                      <span className="text-[11px] font-medium tabular-nums text-white/40">
                         {formatDecisionDate(event.event_date)}
                       </span>
-                      <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-white/90">
+                      <p className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-white/90">
                         {event.name}
                       </p>
                       {meta ? (
-                        <p className="mt-auto pt-1 truncate text-[10px] leading-tight text-white/35">
+                        <p className="mt-auto pt-1 truncate text-[11px] leading-tight text-white/35">
                           {meta}
                         </p>
                       ) : null}
