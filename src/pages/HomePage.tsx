@@ -1,33 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { CalendarDays, Check, ChevronRight, ChevronUp, Plus, Trash2, X } from 'lucide-react'
+import { Check, ChevronRight, ChevronUp } from 'lucide-react'
 import { Countdown } from '@/components/Countdown'
-import { DeleteConfirm } from '@/components/DeleteConfirm'
-import { Button } from '@/components/ui/button'
+import { formatDecisionDate } from '@/components/decisions/shared'
 import { Progress } from '@/components/ui/progress'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerFooter,
-} from '@/components/ui/drawer'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
-import { Textarea } from '@/components/ui/textarea'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import { BUDGET_PROGRESS } from '@/components/budget/shared'
 import { sumPaymentsByStatus } from '@/lib/budget'
 import { sumFundsByAvailability, buildFundTimeline } from '@/lib/bankFunds'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
-import { decisionSchema, type DecisionInput } from '@/lib/validations'
 import type {
   BankFund,
   BudgetCategory,
@@ -67,12 +50,6 @@ const PAYMENT_TONE: Record<BudgetPaymentStatus, { amount: string; dot: string }>
 
 function paymentDate(p: BudgetPayment) {
   return p.due_date || p.created_at.slice(0, 10)
-}
-
-function formatDecisionDate(value: string) {
-  const d = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return value
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
 function isIsoDate(value: string | null | undefined): value is string {
@@ -216,149 +193,8 @@ function SectionNav({
   )
 }
 
-function DecisionDateField({
-  value,
-  onChange,
-  onBlur,
-  name,
-}: {
-  value: string
-  onChange: (value: string) => void
-  onBlur: () => void
-  name: string
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const label = value ? formatDecisionDate(value) : null
-
-  const openPicker = () => {
-    const el = inputRef.current
-    if (!el) return
-    if (typeof el.showPicker === 'function') el.showPicker()
-    else el.click()
-  }
-
-  return (
-    <div className="relative">
-      <input
-        ref={inputRef}
-        type="date"
-        name={name}
-        value={value || ''}
-        onBlur={onBlur}
-        onChange={(e) => onChange(e.target.value)}
-        className="pointer-events-none absolute h-0 w-0 opacity-0"
-        tabIndex={-1}
-        aria-hidden
-      />
-      <button
-        type="button"
-        onClick={openPicker}
-        className={cn(
-          'inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border px-2 text-[12px] transition-colors',
-          value
-            ? 'border-gold/40 bg-gold/10 text-gold'
-            : 'border-gold/20 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]',
-        )}
-      >
-        <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span className="truncate">{label ?? 'Pick date'}</span>
-      </button>
-    </div>
-  )
-}
-
-function DecisionForm({
-  formId,
-  onSubmit,
-  onSubmittingChange,
-  onClose,
-}: {
-  formId: string
-  onSubmit: (values: DecisionInput) => Promise<void>
-  onSubmittingChange?: (submitting: boolean) => void
-  onClose: () => void
-}) {
-  const form = useForm<DecisionInput>({
-    resolver: zodResolver(decisionSchema),
-    defaultValues: { decision_date: new Date().toISOString().slice(0, 10), text: '' },
-  })
-
-  useEffect(() => {
-    onSubmittingChange?.(form.formState.isSubmitting)
-  }, [form.formState.isSubmitting, onSubmittingChange])
-
-  return (
-    <Form {...form}>
-      <form
-        id={formId}
-        onSubmit={form.handleSubmit(async (values) => {
-          await onSubmit(values)
-        })}
-        className="space-y-3"
-      >
-        <FormField
-          control={form.control}
-          name="text"
-          render={({ field }) => (
-            <FormItem className="space-y-0">
-              <FormControl>
-                <Textarea
-                  rows={3}
-                  placeholder="What did you decide?"
-                  className="min-h-[72px] resize-none border-0 border-b border-gold/30 bg-transparent px-0 py-1.5 text-base shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex items-center justify-between gap-2 border-y border-gold/15 py-2">
-          <p className="font-display text-lg font-semibold tracking-wide text-gold">Add decision</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-white/70 hover:text-gold"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <FormField
-          control={form.control}
-          name="decision_date"
-          render={({ field }) => (
-            <FormItem className="space-y-1">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-white/45">
-                Date
-              </p>
-              <FormControl>
-                <DecisionDateField
-                  name={field.name}
-                  value={field.value ?? ''}
-                  onBlur={field.onBlur}
-                  onChange={field.onChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </form>
-    </Form>
-  )
-}
-
 export function HomePage() {
   const qc = useQueryClient()
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [formSubmitting, setFormSubmitting] = useState(false)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [showAllDecisions, setShowAllDecisions] = useState(false)
 
   const { data: decisions = [], isLoading } = useQuery({
     queryKey: ['decisions'],
@@ -587,19 +423,6 @@ export function HomePage() {
       return a.sort_order - b.sort_order
     })
   }, [events])
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('decisions').delete().eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      toast.success('Deleted')
-      qc.invalidateQueries({ queryKey: ['decisions'] })
-      setDeleteId(null)
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
 
   const toggleChecklistMutation = useMutation({
     mutationFn: async (item: ChecklistItem) => {
@@ -846,20 +669,7 @@ export function HomePage() {
       </section>
 
       <section>
-        <SectionNav
-          title="Decisions"
-          action={
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 shrink-0 p-0 text-white/55 hover:text-gold"
-              aria-label="Add decision"
-              onClick={() => setDrawerOpen(true)}
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          }
-        />
+        <SectionNav to="/decisions" title="Decisions" hint="Latest 3" />
 
         {isLoading ? (
           <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
@@ -873,15 +683,16 @@ export function HomePage() {
                 aria-hidden
               />
               <ul>
-                {(showAllDecisions ? decisions : decisions.slice(0, 3)).map((d, index, list) => (
+                {decisions.slice(0, 3).map((d, index, list) => (
                   <li key={d.id} className="relative">
                     <span
                       className="absolute -left-3.5 top-2 h-2 w-2 rounded-full bg-gold/70 ring-4 ring-gold/15"
                       aria-hidden
                     />
-                    <div
+                    <Link
+                      to="/decisions"
                       className={cn(
-                        'flex items-start gap-1 rounded-md py-1 pl-1 pr-0.5',
+                        'flex items-start gap-1 rounded-md py-1 pl-1 pr-0.5 hover:bg-white/[0.04]',
                         index < list.length - 1 && 'border-b border-white/[0.04]',
                       )}
                     >
@@ -891,29 +702,18 @@ export function HomePage() {
                       <p className="min-w-0 flex-1 text-[13px] leading-snug text-white/85">
                         {d.text}
                       </p>
-                      <button
-                        type="button"
-                        aria-label="Delete decision"
-                        className="mt-px shrink-0 rounded p-0.5 text-white/30 hover:text-white/70"
-                        onClick={() => setDeleteId(d.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
             </div>
             {decisions.length > 3 ? (
-              <button
-                type="button"
-                onClick={() => setShowAllDecisions((v) => !v)}
-                className="mt-0.5 text-[12px] font-medium text-gold/75 hover:text-gold"
+              <Link
+                to="/decisions"
+                className="mt-0.5 inline-block text-[12px] font-medium text-gold/75 hover:text-gold"
               >
-                {showAllDecisions
-                  ? 'Show less'
-                  : `+${decisions.length - 3} more`}
-              </button>
+                +{decisions.length - 3} more
+              </Link>
             ) : null}
           </>
         )}
@@ -1029,60 +829,6 @@ export function HomePage() {
         )}
       </section>
 
-      <Drawer
-        open={drawerOpen}
-        onOpenChange={(open) => {
-          setDrawerOpen(open)
-          if (!open) setFormSubmitting(false)
-        }}
-        dismissible={false}
-        shouldScaleBackground={false}
-        repositionInputs
-        fixed
-      >
-        <DrawerContent className="max-h-[min(52dvh,360px)] overflow-hidden">
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 pt-2 [touch-action:pan-y]">
-            <DecisionForm
-              key={drawerOpen ? 'open' : 'closed'}
-              formId="decision-form"
-              onClose={() => setDrawerOpen(false)}
-              onSubmittingChange={setFormSubmitting}
-              onSubmit={async (values) => {
-                const { error } = await supabase.from('decisions').insert({
-                  wedding_id: WEDDING_ID,
-                  decision_date: values.decision_date,
-                  text: values.text,
-                })
-                if (error) {
-                  toast.error(error.message)
-                  throw error
-                }
-                toast.success('Decision added')
-                qc.invalidateQueries({ queryKey: ['decisions'] })
-                setDrawerOpen(false)
-              }}
-            />
-          </div>
-          <DrawerFooter className="shrink-0 border-t border-gold/20">
-            <Button
-              type="submit"
-              form="decision-form"
-              className="h-9 w-full text-sm"
-              disabled={formSubmitting}
-            >
-              {formSubmitting ? 'Saving…' : 'Add decision'}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
-      <DeleteConfirm
-        open={!!deleteId}
-        onOpenChange={(o) => !o && setDeleteId(null)}
-        title="Delete decision?"
-        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        loading={deleteMutation.isPending}
-      />
     </div>
   )
 }

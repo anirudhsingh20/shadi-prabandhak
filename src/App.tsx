@@ -7,6 +7,7 @@ import { AuthProvider } from '@/hooks/useAuth'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { MoneyInBankPage } from '@/pages/MoneyInBankPage'
 import { ChecklistPage } from '@/pages/ChecklistPage'
+import { DecisionsPage } from '@/pages/DecisionsPage'
 import { EventsPage } from '@/pages/EventsPage'
 import { GuestsV2Page } from '@/pages/GuestsV2Page'
 import { FamilyTreePage } from '@/pages/FamilyTreePage'
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="tracker" element={<Navigate to="/payments" replace />} />
               <Route path="vendors" element={<VendorsPage />} />
               <Route path="checklist" element={<ChecklistPage />} />
+              <Route path="decisions" element={<DecisionsPage />} />
               <Route path="ideas" element={<IdeasPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
