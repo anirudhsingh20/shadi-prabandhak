@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { sumPaymentsByCategory, sumPaymentsByStatus } from '@/lib/budget'
-import { sumFundsByAvailability } from '@/lib/bankFunds'
+import { availableAmountTone, sumFundsByAvailability } from '@/lib/bankFunds'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BudgetCategoryInput } from '@/lib/validations'
@@ -79,7 +79,7 @@ export function BudgetTabContent({
       allocated,
       unallocated: moneyInBank - allocated,
       ...paymentTotals,
-      remainingBudget: moneyInBank - paymentTotals.paid,
+      remainingBudget: fundTotals.now,
       paymentCount: payments.length,
       categoryCount: categories.length,
     }
@@ -165,7 +165,9 @@ export function BudgetTabContent({
   }
 
   const overallPct =
-    totals.moneyInBank > 0 ? Math.min(100, (totals.paid / totals.moneyInBank) * 100) : 0
+    totals.paid + totals.remainingBudget > 0
+      ? Math.min(100, (totals.paid / (totals.paid + totals.remainingBudget)) * 100)
+      : 0
 
   return (
     <div className="space-y-4">
@@ -182,12 +184,18 @@ export function BudgetTabContent({
             <Pencil className="h-3.5 w-3.5 shrink-0 text-gold/70" aria-hidden />
           </p>
           <p className="text-[11px] text-white/50">
-            {formatCurrencyCompact(totals.fundTotals.now)} now
+            <span className={cn('tabular-nums', availableAmountTone(totals.fundTotals.now))}>
+              {formatCurrencyCompact(totals.fundTotals.now)}
+            </span>{' '}
+            now
             {totals.fundTotals.scheduled > 0
               ? ` · ${formatCurrencyCompact(totals.fundTotals.scheduled)} scheduled`
               : ''}
             {' · '}
-            {formatCurrency(totals.remainingBudget)} left after paid
+            <span className={cn('tabular-nums', availableAmountTone(totals.remainingBudget))}>
+              {formatCurrency(totals.remainingBudget)}
+            </span>{' '}
+            available left
           </p>
         </Link>
         <div className="border-b border-gold/25 px-3 py-2">
@@ -204,7 +212,7 @@ export function BudgetTabContent({
                 <span className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.leftDot)} aria-hidden />
                 Left{' '}
                 <span
-                  className={cn('tabular-nums', BUDGET_PROGRESS.leftText)}
+                  className={cn('tabular-nums', availableAmountTone(totals.remainingBudget))}
                   title={formatCurrency(totals.remainingBudget)}
                 >
                   {formatCurrencyCompact(totals.remainingBudget)}

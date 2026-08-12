@@ -107,6 +107,15 @@ export interface BankFund {
   created_at: string
 }
 
+export interface BankFundOutflow {
+  id: string
+  wedding_id: string
+  payment_id: string
+  fund_id: string
+  amount: number
+  created_at: string
+}
+
 export interface Vendor {
   id: string
   wedding_id: string
@@ -171,6 +180,11 @@ export interface Database {
         Row: BankFund
         Insert: Omit<BankFund, 'id' | 'created_at'> & { id?: string; created_at?: string }
         Update: Partial<BankFund>
+      }
+      bank_fund_outflows: {
+        Row: BankFundOutflow
+        Insert: Omit<BankFundOutflow, 'id' | 'created_at'> & { id?: string; created_at?: string }
+        Update: Partial<BankFundOutflow>
       }
       vendors: { Row: Vendor; Insert: Omit<Vendor, 'id'> & { id?: string }; Update: Partial<Vendor> }
       checklist_items: { Row: ChecklistItem; Insert: Omit<ChecklistItem, 'id'> & { id?: string }; Update: Partial<ChecklistItem> }

@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import { BUDGET_PROGRESS } from '@/components/budget/shared'
 import { sumPaymentsByStatus } from '@/lib/budget'
-import { sumFundsByAvailability, buildFundTimeline } from '@/lib/bankFunds'
+import { sumFundsByAvailability, buildFundTimeline, availableAmountTone } from '@/lib/bankFunds'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import type {
   BankFund,
@@ -382,9 +382,10 @@ export function HomePage() {
     }
   }, [wedding, payments, categories])
 
-  const categoryBudgetItems = useMemo(() => {
+  const topCategories = useMemo(() => {
     return [...categories]
-      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+      .sort((a, b) => Number(b.allocated) - Number(a.allocated) || a.name.localeCompare(b.name))
+      .slice(0, 3)
       .map((c) => ({
         id: c.id,
         name: c.name,
@@ -394,6 +395,7 @@ export function HomePage() {
 
   const bankInsight = useMemo(() => {
     const totals = sumFundsByAvailability(bankFunds)
+    const paymentTotals = sumPaymentsByStatus(payments)
     const timeline = buildFundTimeline(bankFunds)
     const lastPoint = timeline[timeline.length - 1]
     const withScheduledTotal = totals.now + totals.scheduled
@@ -401,8 +403,20 @@ export function HomePage() {
     const showScheduled = totals.scheduled > 0
     const showExpected =
       totals.expected > 0 || withExpectedTotal > withScheduledTotal
-    return { totals, withScheduledTotal, withExpectedTotal, showScheduled, showExpected }
-  }, [bankFunds])
+    const bankSpentPct =
+      paymentTotals.paid + totals.now > 0
+        ? Math.min(100, (paymentTotals.paid / (paymentTotals.paid + totals.now)) * 100)
+        : 0
+    return {
+      totals,
+      paidFromBank: paymentTotals.paid,
+      withScheduledTotal,
+      withExpectedTotal,
+      showScheduled,
+      showExpected,
+      bankSpentPct,
+    }
+  }, [bankFunds, payments])
 
   const { data: events = [], isLoading: eventsLoading } = useQuery({
     queryKey: ['events'],
@@ -526,6 +540,121 @@ export function HomePage() {
       </section>
 
       <section>
+        <SectionNav to="/money-in-bank" title="Money in bank" hint="Available" />
+        {bankLoading ? (
+          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
+        ) : (
+          <Link
+            to="/money-in-bank"
+            className="mt-0.5 block rounded-md border border-gold/25 bg-white/[0.03] px-3 py-2 transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
+          >
+            <div
+              className={cn(
+                'grid gap-x-2 gap-y-1',
+                bankInsight.showScheduled && bankInsight.showExpected && 'grid-cols-3',
+                bankInsight.showScheduled &&
+                  !bankInsight.showExpected &&
+                  'grid-cols-2',
+                !bankInsight.showScheduled &&
+                  bankInsight.showExpected &&
+                  'grid-cols-2',
+                !bankInsight.showScheduled &&
+                  !bankInsight.showExpected &&
+                  'grid-cols-1',
+              )}
+            >
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-white/45">In bank now</p>
+                <p
+                  className={cn(
+                    'font-display text-base font-semibold leading-none tabular-nums',
+                    availableAmountTone(bankInsight.totals.now),
+                  )}
+                  title={formatCurrency(bankInsight.totals.now)}
+                >
+                  {formatCurrencyCompact(bankInsight.totals.now)}
+                </p>
+              </div>
+              {bankInsight.showScheduled ? (
+                <div
+                  className={cn(
+                    'min-w-0',
+                    bankInsight.showExpected ? 'text-center' : 'text-right',
+                  )}
+                >
+                  <p className="text-[10px] uppercase tracking-wide text-white/45">
+                    With scheduled
+                  </p>
+                  <p
+                    className="font-display text-base font-semibold leading-none tabular-nums text-amber-300"
+                    title={formatCurrency(bankInsight.withScheduledTotal)}
+                  >
+                    {formatCurrencyCompact(bankInsight.withScheduledTotal)}
+                  </p>
+                </div>
+              ) : null}
+              {bankInsight.showExpected ? (
+                <div className="min-w-0 text-right">
+                  <p className="text-[10px] uppercase tracking-wide text-white/45">With expected</p>
+                  <p
+                    className="font-display text-base font-semibold leading-none tabular-nums text-white/85"
+                    title={formatCurrency(bankInsight.withExpectedTotal)}
+                  >
+                    {formatCurrencyCompact(bankInsight.withExpectedTotal)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            {bankInsight.paidFromBank > 0 ? (
+              <div className="mt-1.5 flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1">
+                  <span className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.paidDot)} aria-hidden />
+                  <span className={cn('h-1.5 w-1.5 rounded-full', BUDGET_PROGRESS.leftDot)} aria-hidden />
+                </div>
+                <Progress
+                  value={bankInsight.bankSpentPct}
+                  className={cn('h-1 flex-1', BUDGET_PROGRESS.bar)}
+                />
+                <span className="shrink-0 text-[10px] tabular-nums text-white/45">
+                  {Math.round(bankInsight.bankSpentPct)}% spent
+                </span>
+              </div>
+            ) : null}
+
+            {(bankInsight.totals.scheduled > 0 ||
+              bankInsight.totals.expected > 0 ||
+              bankInsight.paidFromBank > 0) && (
+              <p className="mt-1 text-[11px] leading-snug text-white/45">
+                {bankInsight.paidFromBank > 0 ? (
+                  <>
+                    <span
+                      className="font-medium tabular-nums text-emerald-400/90"
+                      title={formatCurrency(bankInsight.paidFromBank)}
+                    >
+                      {formatCurrencyCompact(bankInsight.paidFromBank)}
+                    </span>{' '}
+                    paid from bank
+                  </>
+                ) : null}
+                {bankInsight.paidFromBank > 0 &&
+                (bankInsight.totals.scheduled > 0 || bankInsight.totals.expected > 0)
+                  ? ' · '
+                  : null}
+                {bankInsight.totals.scheduled > 0
+                  ? `${formatCurrencyCompact(bankInsight.totals.scheduled)} scheduled`
+                  : ''}
+                {bankInsight.totals.scheduled > 0 && bankInsight.totals.expected > 0 ? ' · ' : ''}
+                {bankInsight.totals.expected > 0
+                  ? `${formatCurrencyCompact(bankInsight.totals.expected)} expected`
+                  : ''}
+              </p>
+            )}
+          </Link>
+        )}
+      </section>
+
+      <section>
         <SectionNav to="/budget" title="Budget" hint="Overview" />
         {budgetLoading ? (
           <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
@@ -535,16 +664,30 @@ export function HomePage() {
             className="mt-0.5 block rounded-md border border-gold/25 bg-white/[0.03] px-3 py-2 transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
           >
             <div className="flex items-baseline justify-between gap-2">
-              <p className="min-w-0 shrink-0">
-                <span className="text-[11px] text-white/45">Total </span>
-                <span
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-white/45">Total budget</p>
+                <p
                   className="font-display text-base font-semibold tabular-nums text-gold"
                   title={formatCurrency(budgetInsight.totalBudget)}
                 >
                   {formatCurrencyCompact(budgetInsight.totalBudget)}
-                </span>
-              </p>
-              <p className="min-w-0 flex-1 px-1 text-center text-[11px] leading-tight">
+                </p>
+              </div>
+              {budgetInsight.moneyRequired > 0 ? (
+                <div className="shrink-0 text-right">
+                  <p className="text-[10px] uppercase tracking-wide text-white/45">Outstanding</p>
+                  <p
+                    className="font-display text-base font-semibold tabular-nums text-amber-300"
+                    title={formatCurrency(budgetInsight.moneyRequired)}
+                  >
+                    {formatCurrencyCompact(budgetInsight.moneyRequired)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/55">
+              <span>
                 <span className="text-white/45">Paid </span>
                 <span
                   className={cn('font-medium tabular-nums', BUDGET_PROGRESS.paidText)}
@@ -552,24 +695,33 @@ export function HomePage() {
                 >
                   {formatCurrencyCompact(budgetInsight.paid)}
                 </span>
-                <span className="text-white/45"> · Left </span>
+              </span>
+              <span className="text-white/25">·</span>
+              <span>
+                <span className="text-white/45">Budget left </span>
                 <span
                   className={cn('font-medium tabular-nums', BUDGET_PROGRESS.leftText)}
                   title={formatCurrency(budgetInsight.budgetLeft)}
                 >
                   {formatCurrencyCompact(budgetInsight.budgetLeft)}
                 </span>
-              </p>
-              <p className="min-w-0 shrink-0 text-right">
-                <span className="text-[11px] text-white/45">Required </span>
-                <span
-                  className="font-display text-base font-semibold tabular-nums text-gold/90"
-                  title={formatCurrency(budgetInsight.moneyRequired)}
-                >
-                  {formatCurrencyCompact(budgetInsight.moneyRequired)}
-                </span>
-              </p>
+              </span>
+              {budgetInsight.allocated > 0 ? (
+                <>
+                  <span className="text-white/25">·</span>
+                  <span>
+                    <span className="text-white/45">Allocated </span>
+                    <span
+                      className="font-medium tabular-nums text-gold/85"
+                      title={formatCurrency(budgetInsight.allocated)}
+                    >
+                      {formatCurrencyCompact(budgetInsight.allocated)}
+                    </span>
+                  </span>
+                </>
+              ) : null}
             </div>
+
             {budgetInsight.totalBudget > 0 ? (
               <div className="mt-1 flex items-center gap-2">
                 <div className="flex shrink-0 items-center gap-1">
@@ -584,16 +736,14 @@ export function HomePage() {
                   <span className={BUDGET_PROGRESS.paidText}>
                     {Math.round(budgetInsight.usedPct)}%
                   </span>
-                  <span className="text-white/40"> · </span>
-                  <span className={BUDGET_PROGRESS.leftText}>
-                    {Math.round(100 - budgetInsight.usedPct)}% left
-                  </span>
+                  <span className="text-white/40"> paid</span>
                 </span>
               </div>
             ) : null}
-            {categoryBudgetItems.length > 0 ? (
-              <p className="mt-0.5 text-[11px] leading-snug text-white/50">
-                {categoryBudgetItems.map((c, i) => (
+
+            {topCategories.length > 0 ? (
+              <p className="mt-1 text-[11px] leading-snug text-white/50">
+                {topCategories.map((c, i) => (
                   <span key={c.id}>
                     {i > 0 ? ' · ' : ''}
                     {c.name}{' '}
@@ -605,63 +755,9 @@ export function HomePage() {
                     </span>
                   </span>
                 ))}
-              </p>
-            ) : null}
-          </Link>
-        )}
-      </section>
-
-      <section>
-        <SectionNav to="/money-in-bank" title="Money in bank" />
-        {bankLoading ? (
-          <p className="py-0.5 text-[13px] text-white/45">Loading…</p>
-        ) : (
-          <Link
-            to="/money-in-bank"
-            className="mt-0.5 block rounded-md border border-gold/25 bg-white/[0.03] px-3 py-2 transition-colors hover:border-gold/40 hover:bg-white/[0.05]"
-          >
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-              <p>
-                <span className="text-[11px] text-white/45">Now </span>
-                <span
-                  className="font-display text-base font-semibold tabular-nums text-emerald-400"
-                  title={formatCurrency(bankInsight.totals.now)}
-                >
-                  {formatCurrencyCompact(bankInsight.totals.now)}
-                </span>
-              </p>
-              {bankInsight.showScheduled ? (
-                <p>
-                  <span className="text-[11px] text-white/45">+Scheduled </span>
-                  <span
-                    className="font-display text-base font-semibold tabular-nums text-amber-300"
-                    title={formatCurrency(bankInsight.withScheduledTotal)}
-                  >
-                    {formatCurrencyCompact(bankInsight.withScheduledTotal)}
-                  </span>
-                </p>
-              ) : null}
-              {bankInsight.showExpected ? (
-                <p>
-                  <span className="text-[11px] text-white/45">+Expected </span>
-                  <span
-                    className="font-display text-base font-semibold tabular-nums text-white/85"
-                    title={formatCurrency(bankInsight.withExpectedTotal)}
-                  >
-                    {formatCurrencyCompact(bankInsight.withExpectedTotal)}
-                  </span>
-                </p>
-              ) : null}
-            </div>
-            {bankInsight.totals.scheduled > 0 || bankInsight.totals.expected > 0 ? (
-              <p className="mt-0.5 text-[12px] text-white/45">
-                {bankInsight.totals.scheduled > 0
-                  ? `${formatCurrencyCompact(bankInsight.totals.scheduled)} scheduled`
-                  : ''}
-                {bankInsight.totals.scheduled > 0 && bankInsight.totals.expected > 0 ? ' · ' : ''}
-                {bankInsight.totals.expected > 0
-                  ? `${formatCurrencyCompact(bankInsight.totals.expected)} expected`
-                  : ''}
+                {categories.length > topCategories.length ? (
+                  <span className="text-white/35"> · +{categories.length - topCategories.length} more</span>
+                ) : null}
               </p>
             ) : null}
           </Link>

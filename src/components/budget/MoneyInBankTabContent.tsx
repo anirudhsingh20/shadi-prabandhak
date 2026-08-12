@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Landmark, Pencil, Trash2, User } from 'lucide-react'
@@ -14,8 +15,10 @@ import {
   FUND_SECTION_SHORT,
   groupFundsByAvailability,
   sumFundsByAvailability,
+  availableAmountTone,
 } from '@/lib/bankFunds'
 import { buildFundLabel, catalogUsageCounts, CATALOG_LABELS } from '@/lib/paymentCatalog'
+import { sumPaymentsByStatus } from '@/lib/budget'
 import { supabase, WEDDING_ID } from '@/lib/supabase'
 import { cn, formatCurrency, formatCurrencyCompact } from '@/lib/utils'
 import type { BankFundInput } from '@/lib/validations'
@@ -100,7 +103,12 @@ function FundRow({
         <p className="min-w-0 flex-1 text-[13px] font-medium leading-tight text-white/90">
           {fund.label}
         </p>
-        <p className="shrink-0 font-display text-[13px] font-semibold tabular-nums text-gold">
+        <p
+          className={cn(
+            'shrink-0 font-display text-[13px] font-semibold tabular-nums',
+            Number(fund.amount) < 0 ? 'text-red-400' : 'text-gold',
+          )}
+        >
           {formatCurrency(Number(fund.amount))}
         </p>
       </div>
@@ -177,7 +185,7 @@ function FundSection({
             {funds.length}
           </span>
         </div>
-        <p className="font-display text-sm font-semibold tabular-nums text-gold">
+        <p className={cn('font-display text-sm font-semibold tabular-nums', availableAmountTone(total))}>
           {formatCurrency(total)}
         </p>
       </div>
@@ -268,6 +276,7 @@ export function MoneyInBankTabContent({
   const grouped = useMemo(() => groupFundsByAvailability(funds), [funds])
   const timeline = useMemo(() => buildFundTimeline(funds), [funds])
   const totals = useMemo(() => sumFundsByAvailability(funds), [funds])
+  const paidFromBank = useMemo(() => sumPaymentsByStatus(payments).paid, [payments])
 
   const projectionSummary = useMemo(() => {
     const nowPoint = timeline.find((point) => point.monthKey === 'now')
@@ -321,7 +330,13 @@ export function MoneyInBankTabContent({
       setDeleteId(null)
       setEditFund(null)
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const msg =
+        e.message.includes('bank_fund_outflows') || e.message.includes('violates foreign key')
+          ? 'Cannot delete — paid payments deducted from this entry. Change those to Pending first.'
+          : e.message
+      toast.error(msg)
+    },
   })
 
   if (isLoading) {
@@ -349,10 +364,13 @@ export function MoneyInBankTabContent({
           >
             <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-wide text-white/45">In bank now</p>
-              <p
-                className="font-display text-lg font-semibold leading-none tabular-nums text-gold"
-                title={formatCurrency(totals.now)}
-              >
+                <p
+                  className={cn(
+                    'font-display text-lg font-semibold leading-none tabular-nums',
+                    availableAmountTone(totals.now),
+                  )}
+                  title={formatCurrency(totals.now)}
+                >
                 {formatCurrencyCompact(totals.now)}
               </p>
             </div>
@@ -390,8 +408,22 @@ export function MoneyInBankTabContent({
             ) : null}
           </div>
 
-          {(totals.scheduled > 0 || totals.expected > 0) && (
+          {(totals.scheduled > 0 || totals.expected > 0 || paidFromBank > 0) && (
             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-gold/15 pt-2 text-[10px] text-white/45">
+              {paidFromBank > 0 ? (
+                <Link to="/payments" className="hover:text-gold/80">
+                  <span
+                    className="font-medium tabular-nums text-emerald-400/90"
+                    title={formatCurrency(paidFromBank)}
+                  >
+                    {formatCurrencyCompact(paidFromBank)}
+                  </span>{' '}
+                  paid from bank
+                </Link>
+              ) : null}
+              {paidFromBank > 0 && (totals.scheduled > 0 || totals.expected > 0) ? (
+                <span className="text-white/20">·</span>
+              ) : null}
               {totals.scheduled > 0 ? (
                 <span>
                   <span

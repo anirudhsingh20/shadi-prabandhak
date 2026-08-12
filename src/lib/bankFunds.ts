@@ -1,4 +1,5 @@
 import type { BankFund, BankFundAvailability } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
 
 export const FUND_AVAILABILITY_LABEL: Record<BankFundAvailability, string> = {
   now: 'Available now',
@@ -178,4 +179,33 @@ export function buildFundTimeline(funds: BankFund[], today = new Date()): FundTi
 
 export function computedMoneyInBank(funds: BankFund[]) {
   return sumFundsByAvailability(funds).now
+}
+
+export function availableAmountTone(amount: number) {
+  if (amount < 0) return 'text-red-400'
+  return 'text-emerald-400'
+}
+
+export function projectedAvailableAfterPaid(
+  availableNow: number,
+  paymentAmount: number,
+  priorDeduction = 0,
+) {
+  return availableNow + priorDeduction - paymentAmount
+}
+
+export async function syncPaymentBankDeduction(paymentId: string) {
+  const { error } = await supabase.rpc('sync_payment_bank_deduction', {
+    p_payment_id: paymentId,
+    p_restore_only: false,
+  })
+  if (error) throw error
+}
+
+export async function restorePaymentBankDeduction(paymentId: string) {
+  const { error } = await supabase.rpc('sync_payment_bank_deduction', {
+    p_payment_id: paymentId,
+    p_restore_only: true,
+  })
+  if (error) throw error
 }

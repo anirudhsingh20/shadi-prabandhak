@@ -16,7 +16,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { assertPaymentImageFile } from '@/lib/payment-image'
-import { cn, formatAmountInWords } from '@/lib/utils'
+import { projectedAvailableAfterPaid } from '@/lib/bankFunds'
+import { cn, formatAmountInWords, formatCurrencyCompact } from '@/lib/utils'
 import { budgetPaymentSchema, type BudgetPaymentInput } from '@/lib/validations'
 import { CATALOG_LABELS } from '@/lib/paymentCatalog'
 import type {
@@ -68,6 +69,8 @@ export function PaymentForm({
   defaultValues,
   existingImageUrls,
   titleSuggestions = [],
+  availableNow,
+  priorBankDeduction = 0,
   onManageMakers,
   onManageSources,
   onSubmit,
@@ -80,6 +83,8 @@ export function PaymentForm({
   defaultValues?: Partial<BudgetPaymentInput>
   existingImageUrls?: string[]
   titleSuggestions?: string[]
+  availableNow?: number
+  priorBankDeduction?: number
   onManageMakers?: () => void
   onManageSources?: () => void
   onSubmit: (values: BudgetPaymentInput, image: PaymentImageChange) => Promise<void>
@@ -115,6 +120,16 @@ export function PaymentForm({
     },
   })
   const amountWords = formatAmountInWords(Number(form.watch('amount')))
+  const status = form.watch('status')
+  const paymentAmount = Number(form.watch('amount')) || 0
+  const projectedAvailable =
+    availableNow !== undefined
+      ? projectedAvailableAfterPaid(
+          availableNow,
+          status === 'done' ? paymentAmount : 0,
+          priorBankDeduction,
+        )
+      : null
   useEffect(() => {
     const submitting = form.formState.isSubmitting
     onSubmittingChange?.(submitting)
@@ -273,6 +288,22 @@ export function PaymentForm({
                 </FormItem>
               )}
             />
+            {status === 'done' ? (
+              <p className="text-[10px] leading-snug text-white/40">
+                Deducts from Available in{' '}
+                <span className="text-gold/80">Money in bank</span> when saved
+              </p>
+            ) : null}
+            {status === 'done' && projectedAvailable !== null ? (
+              <p
+                className={cn(
+                  'text-[10px] leading-snug tabular-nums',
+                  projectedAvailable < 0 ? 'text-red-400' : 'text-white/40',
+                )}
+              >
+                Available after save: {formatCurrencyCompact(projectedAvailable)}
+              </p>
+            ) : null}
           </div>
           <div className="w-[8.75rem] shrink-0 space-y-1">
             <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">Due</p>

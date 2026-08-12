@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Home, IndianRupee, LayoutGrid, ListChecks } from 'lucide-react'
+import { Home, IndianRupee, Landmark, LayoutGrid, ListChecks } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,7 @@ const primaryTabs: TabItem[] = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/budget', label: 'Budget', icon: IndianRupee },
   { to: '/payments', label: 'Payments', icon: ListChecks },
+  { to: '/money-in-bank', label: 'In bank', icon: Landmark },
   { to: '/overview', label: 'Overview', icon: LayoutGrid },
 ]
 
@@ -29,7 +30,7 @@ export function AppShell() {
           className="wedding-chrome fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-x border-gold/40 pb-[env(safe-area-inset-bottom)]"
           aria-label="Primary"
         >
-          <div className="grid h-16 grid-cols-4">
+          <div className="grid h-16 grid-cols-5">
             {primaryTabs.map((item) => {
               const Icon = item.icon
               return (

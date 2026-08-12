@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowUpDown, History, Layers, Plus, Search, X } from 'lucide-react'
@@ -26,6 +27,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { recentPaymentTitles, sumPaymentsByStatus, syncCategorySpent } from '@/lib/budget'
+import {
+  availableAmountTone,
+  projectedAvailableAfterPaid,
+  restorePaymentBankDeduction,
+  sumFundsByAvailability,
+  syncPaymentBankDeduction,
+} from '@/lib/bankFunds'
 import { catalogUsageCounts } from '@/lib/paymentCatalog'
 import {
   deletePaymentImages,
@@ -330,10 +338,12 @@ export function PaymentsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bank_funds')
-        .select('payment_source, made_by')
+        .select('*')
         .eq('wedding_id', WEDDING_ID)
+        .order('sort_order')
+        .order('created_at')
       if (error) throw error
-      return data as Pick<BankFund, 'payment_source' | 'made_by'>[]
+      return data as BankFund[]
     },
   })
 
@@ -365,6 +375,7 @@ export function PaymentsPage() {
   const titleSuggestions = useMemo(() => recentPaymentTitles(payments), [payments])
 
   const totals = useMemo(() => sumPaymentsByStatus(payments), [payments])
+  const availableNow = useMemo(() => sumFundsByAvailability(bankFunds).now, [bankFunds])
   const outstanding = totals.pending + totals.mayCome
   const totalAll = totals.paid + outstanding
 
@@ -447,11 +458,13 @@ export function PaymentsPage() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['budget'] })
     qc.invalidateQueries({ queryKey: ['budget-payments'] })
+    qc.invalidateQueries({ queryKey: ['bank-funds'] })
   }
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const payment = payments.find((p) => p.id === id)
+      if (payment) await restorePaymentBankDeduction(id)
       const { error } = await supabase.from('budget_payments').delete().eq('id', id)
       if (error) throw error
       if (payment?.image_urls?.length) await deletePaymentImages(payment.image_urls)
@@ -494,13 +507,52 @@ export function PaymentsPage() {
       image_urls: imageUrls,
       wedding_id: WEDDING_ID,
     }
-    const { error } = id
-      ? await supabase.from('budget_payments').update(payload).eq('id', id)
-      : await supabase.from('budget_payments').insert(payload)
-    if (error) {
-      // Don't orphan newly uploaded images if the row write fails
-      if (uploadedUrls.length) await deletePaymentImages(uploadedUrls)
-      throw new Error(error.message)
+
+    let paymentId = id
+    if (id) {
+      const { error } = await supabase.from('budget_payments').update(payload).eq('id', id)
+      if (error) {
+        if (uploadedUrls.length) await deletePaymentImages(uploadedUrls)
+        throw new Error(error.message)
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('budget_payments')
+        .insert(payload)
+        .select('id')
+        .single()
+      if (error) {
+        if (uploadedUrls.length) await deletePaymentImages(uploadedUrls)
+        throw new Error(error.message)
+      }
+      paymentId = data.id
+    }
+
+    if (!paymentId) throw new Error('Payment save failed')
+
+    try {
+      await syncPaymentBankDeduction(paymentId)
+    } catch (e) {
+      if (prev) {
+        await supabase
+          .from('budget_payments')
+          .update({
+            title: prev.title,
+            amount: prev.amount,
+            status: prev.status,
+            category_id: prev.category_id,
+            due_date: prev.due_date,
+            notes: prev.notes,
+            made_by: prev.made_by,
+            payment_source: prev.payment_source,
+            image_urls: prev.image_urls,
+          })
+          .eq('id', paymentId)
+      } else {
+        await supabase.from('budget_payments').delete().eq('id', paymentId)
+        if (uploadedUrls.length) await deletePaymentImages(uploadedUrls)
+      }
+      throw e
     }
 
     if (removedUrls.length) await deletePaymentImages(removedUrls)
@@ -510,6 +562,15 @@ export function PaymentsPage() {
 
     toast.success(id ? 'Payment updated' : 'Payment added')
     invalidate()
+    const priorDeduction = prev?.status === 'done' ? Number(prev.amount) : 0
+    const nextAvailable = projectedAvailableAfterPaid(
+      availableNow,
+      values.status === 'done' ? Number(values.amount) : 0,
+      priorDeduction,
+    )
+    if (values.status === 'done' && nextAvailable < 0) {
+      toast.warning(`Available balance is now ${formatCurrencyCompact(nextAvailable)}`)
+    }
     setCreateOpen(false)
     setEditPay(null)
   }
@@ -532,6 +593,23 @@ export function PaymentsPage() {
 
       {/* Compact balance summary */}
       <div className="overflow-hidden rounded-lg border border-gold/30 bg-white/[0.03]">
+        <div className="flex items-end justify-between gap-3 border-b border-gold/15 px-3 py-2">
+          <Link to="/money-in-bank" className="min-w-0 hover:opacity-90">
+            <p className="text-[10px] uppercase tracking-wide text-white/45">Available now</p>
+            <p
+              className={cn(
+                'font-display text-lg font-semibold tabular-nums leading-tight',
+                availableAmountTone(availableNow),
+              )}
+              title={formatCurrency(availableNow)}
+            >
+              {formatCurrencyCompact(availableNow)}
+            </p>
+          </Link>
+          <p className="max-w-[9rem] text-right text-[10px] leading-snug text-white/40">
+            Paid expenses deduct from Available when marked Paid
+          </p>
+        </div>
         <div className="flex items-end justify-between gap-3 px-3 py-2.5">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-wide text-white/45">Outstanding</p>
@@ -762,6 +840,7 @@ export function PaymentsPage() {
           makers={makers}
           sources={sources}
           titleSuggestions={titleSuggestions}
+          availableNow={availableNow}
           onManageMakers={() => setMakersOpen(true)}
           onManageSources={() => setSourcesOpen(true)}
           onSubmittingChange={setFormSubmitting}
@@ -816,6 +895,8 @@ export function PaymentsPage() {
             makers={makers}
             sources={sources}
             titleSuggestions={titleSuggestions}
+            availableNow={availableNow}
+            priorBankDeduction={editPay.status === 'done' ? Number(editPay.amount) : 0}
             onManageMakers={() => setMakersOpen(true)}
             onManageSources={() => setSourcesOpen(true)}
             onSubmittingChange={setFormSubmitting}

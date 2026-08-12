@@ -114,7 +114,7 @@ create table if not exists bank_funds (
   payment_source text,
   made_by text,
   availability text not null check (availability in ('now', 'scheduled', 'expected')),
-  amount numeric not null check (amount >= 0),
+  amount numeric not null,
   expected_date date,
   notes text,
   sort_order int not null default 0,
@@ -124,6 +124,16 @@ create table if not exists bank_funds (
     or (availability = 'scheduled' and expected_date is not null)
     or (availability = 'expected')
   )
+);
+
+create table if not exists bank_fund_outflows (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references weddings(id) on delete cascade,
+  payment_id uuid not null references budget_payments(id) on delete cascade,
+  fund_id uuid not null references bank_funds(id) on delete restrict,
+  amount numeric not null check (amount > 0),
+  created_at timestamptz not null default now(),
+  unique (payment_id, fund_id)
 );
 
 -- Vendors
@@ -176,6 +186,7 @@ alter table budget_payments enable row level security;
 alter table payment_makers enable row level security;
 alter table payment_sources enable row level security;
 alter table bank_funds enable row level security;
+alter table bank_fund_outflows enable row level security;
 alter table vendors enable row level security;
 alter table checklist_items enable row level security;
 alter table decisions enable row level security;
@@ -190,6 +201,7 @@ create policy "Authenticated full access budget_payments" on budget_payments for
 create policy "Authenticated full access payment_makers" on payment_makers for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access payment_sources" on payment_sources for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access bank_funds" on bank_funds for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated full access bank_fund_outflows" on bank_fund_outflows for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access vendors" on vendors for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access checklist" on checklist_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated full access decisions" on decisions for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
@@ -215,3 +227,95 @@ create policy "Authenticated update payment receipts" on storage.objects
 create policy "Authenticated delete payment receipts" on storage.objects
   for delete to authenticated
   using (bucket_id = 'payment-receipts');
+
+create or replace function sync_payment_bank_deduction(
+  p_payment_id uuid,
+  p_restore_only boolean default false
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_payment record;
+  v_outflow record;
+  v_fund record;
+  v_target_fund_id uuid;
+  v_remaining numeric;
+  v_deduct numeric;
+begin
+  select * into v_payment from budget_payments where id = p_payment_id;
+  if not found then
+    return;
+  end if;
+
+  for v_outflow in
+    select o.fund_id, o.amount
+    from bank_fund_outflows o
+    where o.payment_id = p_payment_id
+  loop
+    update bank_funds
+    set amount = amount + v_outflow.amount
+    where id = v_outflow.fund_id;
+  end loop;
+
+  delete from bank_fund_outflows where payment_id = p_payment_id;
+
+  if p_restore_only or v_payment.status <> 'done' then
+    return;
+  end if;
+
+  v_remaining := v_payment.amount;
+
+  for v_fund in
+    select id, amount
+    from bank_funds
+    where wedding_id = v_payment.wedding_id
+      and availability = 'now'
+      and amount > 0
+    order by sort_order, created_at
+  loop
+    exit when v_remaining <= 0;
+
+    v_deduct := least(v_fund.amount, v_remaining);
+
+    if v_deduct > 0 then
+      update bank_funds
+      set amount = amount - v_deduct
+      where id = v_fund.id;
+
+      insert into bank_fund_outflows (wedding_id, payment_id, fund_id, amount)
+      values (v_payment.wedding_id, p_payment_id, v_fund.id, v_deduct);
+
+      v_remaining := v_remaining - v_deduct;
+    end if;
+  end loop;
+
+  if v_remaining > 0 then
+    select id into v_target_fund_id
+    from bank_funds
+    where wedding_id = v_payment.wedding_id
+      and availability = 'now'
+    order by sort_order, created_at
+    limit 1;
+
+    if v_target_fund_id is null then
+      insert into bank_funds (wedding_id, label, availability, amount, sort_order)
+      values (v_payment.wedding_id, 'Overdraft', 'now', -v_remaining, 0)
+      returning id into v_target_fund_id;
+    else
+      update bank_funds
+      set amount = amount - v_remaining
+      where id = v_target_fund_id;
+    end if;
+
+    insert into bank_fund_outflows (wedding_id, payment_id, fund_id, amount)
+    values (v_payment.wedding_id, p_payment_id, v_target_fund_id, v_remaining)
+    on conflict (payment_id, fund_id)
+    do update set amount = bank_fund_outflows.amount + excluded.amount;
+  end if;
+end;
+$$;
+
+grant execute on function sync_payment_bank_deduction(uuid, boolean) to authenticated;
