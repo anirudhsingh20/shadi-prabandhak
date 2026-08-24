@@ -414,6 +414,31 @@ export function PaymentsPage() {
   const filtersActive =
     statusFilter !== 'all' || categoryFilter !== 'all' || search.trim().length > 0
 
+  const filteredTotals = useMemo(() => sumPaymentsByStatus(filtered), [filtered])
+
+  const filterLabel = useMemo(() => {
+    const parts: string[] = []
+    if (statusFilter !== 'all') {
+      parts.push(FILTERS.find((f) => f.value === statusFilter)?.label ?? statusFilter)
+    }
+    if (categoryFilter !== 'all') {
+      parts.push(
+        categoryFilter === 'none' ? 'Uncategorized' : categoryMap[categoryFilter] ?? 'Category',
+      )
+    }
+    if (search.trim()) parts.push(`“${search.trim()}”`)
+    return parts.join(' · ')
+  }, [statusFilter, categoryFilter, search, categoryMap])
+
+  const filteredBreakdown = useMemo(() => {
+    const parts: string[] = []
+    if (filteredTotals.paid > 0) parts.push(`Paid ${formatCurrencyCompact(filteredTotals.paid)}`)
+    if (filteredTotals.pending > 0) parts.push(`Pending ${formatCurrencyCompact(filteredTotals.pending)}`)
+    if (filteredTotals.mayCome > 0) parts.push(`May come ${formatCurrencyCompact(filteredTotals.mayCome)}`)
+    parts.push(`${filtered.length} item${filtered.length === 1 ? '' : 's'}`)
+    return parts.join(' · ')
+  }, [filtered.length, filteredTotals])
+
   const grouped = useMemo(() => {
     const sorted = sortPayments(filtered, sortKey)
 
@@ -643,6 +668,13 @@ export function PaymentsPage() {
             </div>
           </div>
         </div>
+        {filtersActive ? (
+          <p className="border-t border-gold/10 px-3 py-1.5 text-[10px] leading-snug text-white/45">
+            <span className="font-medium text-white/55">{filterLabel}</span>
+            {' — '}
+            {filteredBreakdown}
+          </p>
+        ) : null}
         {totalAll > 0 && (
           <div className="h-1 overflow-hidden bg-white/5">
             <div
