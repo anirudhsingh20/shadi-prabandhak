@@ -1,4 +1,4 @@
-import { type ReactNode, useRef } from 'react'
+import { type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CalendarDays, X } from 'lucide-react'
@@ -52,19 +52,6 @@ export function formatShortDate(iso: string | null | undefined) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-function openDatePicker(input: HTMLInputElement | null) {
-  if (!input) return
-  if (typeof input.showPicker === 'function') {
-    try {
-      input.showPicker()
-      return
-    } catch {
-      // showPicker can reject outside a direct user gesture on some browsers
-    }
-  }
-  input.click()
-}
-
 export function DatePickerField({
   value,
   onChange,
@@ -80,34 +67,28 @@ export function DatePickerField({
   placeholder?: string
   allowClear?: boolean
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
   const label = formatShortDate(value)
 
   return (
     <div className="relative flex items-center gap-1">
-      <input
-        ref={inputRef}
-        type="date"
-        name={name}
-        value={value || ''}
-        onBlur={onBlur}
-        onChange={(e) => onChange(e.target.value)}
-        className="pointer-events-none absolute h-0 w-0 opacity-0"
-        tabIndex={-1}
-        aria-hidden
-      />
-      <button
-        type="button"
-        onClick={() => openDatePicker(inputRef.current)}
-        aria-label={value ? `Date, ${label}` : placeholder}
+      <div
         className={cn(
-          'flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md border border-gold/40 bg-black/25 px-3 text-base transition-colors hover:bg-black/35',
+          'relative flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md border border-gold/40 bg-black/25 px-3 text-base transition-colors',
           value ? 'text-white' : 'text-white/55',
         )}
       >
         <CalendarDays className="h-4 w-4 shrink-0 text-gold/80" aria-hidden />
         <span className="min-w-0 truncate">{label ?? placeholder}</span>
-      </button>
+        <input
+          type="date"
+          name={name}
+          value={value || ''}
+          onBlur={onBlur}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={value ? `Date, ${label}` : placeholder}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        />
+      </div>
       {allowClear && value ? (
         <button
           type="button"
@@ -135,34 +116,28 @@ export function CompactDateField({
   name: string
   placeholder?: string
 }) {
-  const inputRef = useRef<HTMLInputElement>(null)
   const label = formatShortDate(value)
 
   return (
     <div className="flex min-h-9 w-full items-center gap-1 border-b border-gold/30">
-      <input
-        ref={inputRef}
-        type="date"
-        name={name}
-        value={value || ''}
-        onBlur={onBlur}
-        onChange={(e) => onChange(e.target.value)}
-        className="pointer-events-none absolute h-0 w-0 opacity-0"
-        tabIndex={-1}
-        aria-hidden
-      />
-      <button
-        type="button"
-        onClick={() => openDatePicker(inputRef.current)}
-        aria-label={value ? `Due date, ${label}` : placeholder}
+      <div
         className={cn(
-          'flex min-h-9 min-w-0 flex-1 items-center gap-1.5 px-0.5 text-base leading-none transition-colors hover:text-white/85',
+          'relative flex min-h-9 min-w-0 flex-1 items-center gap-1.5 px-0.5 text-base leading-none transition-colors',
           value ? 'text-white/70' : 'text-white/45',
         )}
       >
         {!value ? <CalendarDays className="h-4 w-4 shrink-0 text-gold/75" aria-hidden /> : null}
         <span className="min-w-0 truncate">{label ?? placeholder}</span>
-      </button>
+        <input
+          type="date"
+          name={name}
+          value={value || ''}
+          onBlur={onBlur}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={value ? `Due date, ${label}` : placeholder}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        />
+      </div>
       {value ? (
         <button
           type="button"
